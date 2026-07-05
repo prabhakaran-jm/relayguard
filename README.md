@@ -118,6 +118,36 @@ python -m apps.cli.list_incidents --json
 
 Guides: `docs/frontend.md`, `apps/web/DESIGN.md`
 
+## M8: Sponsor proof pass and final demo polish
+
+M8 packages judge-ready evidence without new backend features.
+
+| Artifact | Purpose |
+|----------|---------|
+| `scripts/run-bedrock-demo.*` | One Bedrock-selected incident; logs to `docs/evidence/bedrock_selector_run.txt` |
+| `scripts/capture-evidence.*` | Snapshot `db_status`, ccloud check, audit JSON/text, incident list, dashboard URLs |
+| `relayguard/judge_display.py` | Display label contract (mirrored in dashboard) |
+| Dashboard polish | Human action labels, selector meta, 1920×1080 layout |
+
+```powershell
+.\scripts\capture-evidence.ps1
+.\scripts\run-bedrock-demo.ps1   # skips gracefully if AWS/Bedrock unavailable
+.\scripts\run-web.ps1
+```
+
+### Sponsor tool proof map
+
+| Sponsor | Tool | Working proof in RelayGuard |
+|---------|------|----------------------------|
+| **CockroachDB** | Cloud | System of record for incident memory, lease fencing, action ledger, audit trail (`RELAYGUARD_DB_TARGET=cloud`) |
+| **CockroachDB** | Distributed Vector Indexing | Semantic retrieval of runbooks, incidents, and negative outcomes (`VECTOR(64)`, MemoryGate verdicts) |
+| **CockroachDB** | Managed MCP | Read-only audit path — `docs/mcp-auditor.md`, `audit_incident` CLI, planned `relayguard.audit_incident` tool |
+| **CockroachDB** | ccloud CLI | Cluster inspection — `infra/ccloud/check-cluster.*`, captured in `docs/evidence/m8_ccloud_check.txt` |
+| **AWS** | Lambda | Regional worker runtime — `infra/aws/`, `docs/aws-lambda.md`, M6 evidence |
+| **AWS** | Secrets Manager | CockroachDB URL for Lambda (`relayguard/db`) |
+| **AWS** | CloudWatch | Worker logs from Lambda invoke demo |
+| **AWS** | Bedrock | Guarded action selection — `scripts/run-bedrock-demo.*`, `selector_type=bedrock` in audit |
+
 ## M3: Bedrock action selection with guardrails
 
 RelayGuard replaces hard-coded action picks with a pluggable **ActionSelector**:
@@ -288,6 +318,8 @@ docker compose -f infra/docker-compose.yml up -d
 | **ccloud CLI** | `infra/ccloud/check-cluster` scripts (inspection only, no secrets) |
 | **Managed MCP** | Read-only audit path in `docs/mcp-auditor.md` + `audit_incident` CLI |
 | **Demo quality** | `run-demo` → verify → audit report; `Invariants: PASS` |
+| **Judge dashboard** | `scripts/run-web.ps1` → proof cards, MemoryGate, timeline, ledger |
+| **Sponsor evidence** | `scripts/capture-evidence.*` → `docs/evidence/m8_*` |
 
 ## Project layout
 

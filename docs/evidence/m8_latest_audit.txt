@@ -1,0 +1,54 @@
+RelayGuard Audit Report
+=======================
+Incident:      c61104ce-9f84-4b51-b3f2-41c25907be5a
+Title:         Lambda handoff demo
+Invariants:    PASS
+
+Action selection
+----------------
+Selected:      ROUTE_TO_STANDBY
+Selector:      mock
+Confidence:    1.0
+Fallback used: False
+Reason:        Mock selector: approved runbook recommends routing to standby.
+Used memories: 80a79929-c58b-4ae7-ade7-687f032fc9c6
+Inspected:     5309dc74-92be-42c5-b0a9-e764744cfaf9
+
+MemoryGate verdicts
+-------------------
+  historical_incident    INSPECT  score=0.891 — related historical incident requires human review
+  expired_runbook        AVOID    score=0.878 — runbook is expired or deprecated
+  failed_restart         AVOID    score=0.854 — prior action failed and must not be repeated
+  current_runbook        USE      score=0.841 — active runbook approved for current incident response
+  unrelated_finance      AVOID    score=0.747 — memory is unrelated to the active incident
+
+Execution summary
+-----------------
+Committed actions:         1
+Stale commit rejections:   1
+Retrieved memories:        5
+Blocked memories (AVOID):  3
+
+Action ledger
+-------------
+  ROUTE_TO_STANDBY     committed  key=c61104ce-9f84-4b51-b3f2-41c25907be5a:ROUTE_TO_STANDBY:v1 result=e397e61d-8538-42c9-b544-49ef98832010
+
+Timeline
+--------
+  incident.created             worker=- epoch=- — Lambda handoff demo
+  memories.seeded              worker=- epoch=- — seeded 5 memories
+  lease.claimed                worker=worker-a epoch=1 — incident lease claimed
+  memory.retrieved             worker=worker-a epoch=1 — retrieved 5 memories
+  memory.classified            worker=worker-a epoch=1 — historical_incident -> INSPECT
+  memory.classified            worker=worker-a epoch=1 — expired_runbook -> AVOID
+  memory.classified            worker=worker-a epoch=1 — failed_restart -> AVOID
+  memory.classified            worker=worker-a epoch=1 — current_runbook -> USE
+  memory.classified            worker=worker-a epoch=1 — unrelated_finance -> AVOID
+  checkpoint.memories_classified worker=worker-a epoch=1 — checkpoint checkpoint.memories_classified
+  action.selected              worker=worker-a epoch=1 — ROUTE_TO_STANDBY via mock
+  action_intent.reserved       worker=worker-a epoch=1 — reserved ROUTE_TO_STANDBY
+  checkpoint.action_reserved   worker=worker-a epoch=1 — checkpoint checkpoint.action_reserved
+  lease.claimed                worker=worker-b epoch=2 — incident lease claimed
+  action.committed             worker=worker-b epoch=2 — committed ROUTE_TO_STANDBY
+  checkpoint.completed         worker=worker-b epoch=2 — checkpoint checkpoint.completed
+  action.commit_rejected       worker=worker-a epoch=1 — rejected stale commit (already_committed)

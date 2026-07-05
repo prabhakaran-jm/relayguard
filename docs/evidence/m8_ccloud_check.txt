@@ -1,0 +1,17 @@
+==> ccloud binary: C:\Users\User\AppData\Roaming\ccloud\ccloud.exe
+
+==> ccloud version
+ccloud 0.6.12
+CCAPI  2023-04-10
+
+==> Active session
+logged in to "prabhakaranjm.in" (org-3bcbv) as Prabhakaran Jayaraman Masani
+
+==> Cluster lookup: relayguard
+JSON cluster list unavailable; using text output
+[2K
+NAME        ID                                    PLAN TYPE   CREATED AT                            STATE    CLOUD  VERSION
+relayguard  4057b342-b52c-4f46-89b9-089bab1fc3ae  SERVERLESS  2026-06-30 21:39:44.950982 +0000 UTC  CREATED  AWS    v25.4.10
+Database expected: relayguard
+
+ccloud check complete (no secrets printed)

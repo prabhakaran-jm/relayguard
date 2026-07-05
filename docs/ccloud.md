@@ -33,9 +33,20 @@ ccloud cluster sql --connection-url relayguard
 4. Set in `.env`:
 
 ```bash
+CCLOUD_BIN=C:\Users\You\AppData\Local\ccloud\ccloud.exe   # if not on PATH
 CCLOUD_CLUSTER_NAME=relayguard
 CCLOUD_DATABASE_NAME=relayguard
 ```
+
+### ccloud installed but not recognized
+
+If `ccloud` works in one terminal but RelayGuard scripts skip it:
+
+1. Find the binary: `where ccloud` (Windows) or `which ccloud` (macOS/Linux)
+2. Set `CCLOUD_BIN` in `.env` to that full path
+3. Re-run `scripts/capture-evidence.ps1`
+
+RelayGuard also checks: `%LOCALAPPDATA%\ccloud\ccloud.exe`, `relayguard/ccloud/ccloud.exe`, and common package-manager paths.
 
 ## Check cluster scripts
 

@@ -1,0 +1,18 @@
+RelayGuard judge dashboard
+==========================
+
+1. Start the read-only dashboard:
+   .\scripts\run-web.ps1
+   ./scripts/run-web.sh
+
+2. Open in browser:
+   http://localhost:3000
+   http://localhost:3000/incident/c61104ce-9f84-4b51-b3f2-41c25907be5a
+
+Latest captured incident: c61104ce-9f84-4b51-b3f2-41c25907be5a
+
+3. API (read-only JSON):
+   GET http://localhost:3000/api/incidents
+   GET http://localhost:3000/api/incidents/<incident-id>
+
+DATABASE_URL is never exposed to the browser.

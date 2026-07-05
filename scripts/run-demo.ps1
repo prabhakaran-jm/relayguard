@@ -54,7 +54,8 @@ if ($DbTarget -eq "cloud") {
 }
 
 Write-Host "==> Applying schema and creating incident"
-$IncidentId = & $Python -m apps.cli.create_incident --apply-schema --title "Hackathon demo incident" | Select-Object -Last 1
+$DemoTitle = if ($env:RELAYGUARD_DEMO_TITLE) { $env:RELAYGUARD_DEMO_TITLE } else { "Hackathon demo incident" }
+$IncidentId = & $Python -m apps.cli.create_incident --apply-schema --title $DemoTitle | Select-Object -Last 1
 $IncidentId | Set-Content -Path $IncidentFile -NoNewline
 Write-Host "Incident ID: $IncidentId"
 

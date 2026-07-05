@@ -54,7 +54,9 @@ $env:ACTION_SELECTOR = "bedrock"
 .\scripts\run-demo.ps1
 ```
 
-Then refresh the dashboard. Local mock runs display **Guarded selector** instead of the internal `mock` id.
+Then refresh the dashboard. Local mock runs display **Guarded selector** with metadata `(local mock)` instead of the internal `mock` id.
+Bedrock runs display **Amazon Bedrock**.
+Raw `selector_type` remains in JSON/API responses.
 
 ## API (read-only)
 

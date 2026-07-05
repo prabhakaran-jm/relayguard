@@ -130,3 +130,59 @@ relayguard.explain_action(incident_id) -> action.selected + memory verdicts
 ```
 
 Each tool maps to `db/queries/audit_incident.sql` and returns the same fields as `relayguard/audit_reader.py`.
+
+## Judge-ready MCP proof (final demo)
+
+Use this section during the hackathon recording. Managed MCP must use a **SELECT-only** SQL role — never worker write credentials.
+
+### Screenshots placeholder
+
+| Capture | File |
+|---------|------|
+| MCP auditor answering Q1 | `docs/evidence/mcp_q1_action_selection.png` |
+| MCP auditor answering Q3–Q4 | `docs/evidence/mcp_q3_worker_commit.png` |
+| Dashboard proof panel | `docs/evidence/m8_dashboard_proof.png` |
+
+Run `scripts/capture-evidence.ps1` first to refresh CLI evidence under `docs/evidence/`.
+
+### Exact questions to ask
+
+| # | Question | Expected answer shape |
+|---|----------|------------------------|
+| 1 | **Why was ROUTE_TO_STANDBY selected?** | `action.selected` event: `action_type=ROUTE_TO_STANDBY`, `selector_type` (`mock` or `bedrock`), `reason` citing approved runbook, `used_memory_ids` including current runbook |
+| 2 | **Which memories were rejected and why?** | Rows from `memory.classified` where `verdict=AVOID` — labels such as `expired_runbook`, `failed_restart`, `unrelated_finance` with policy reasons |
+| 3 | **Which worker committed the action?** | `action.committed` / `action_results`: `lease_owner=worker-b`, `lease_epoch` higher than Worker A |
+| 4 | **Why did Worker A fail to commit?** | `action.commit_rejected` for `worker-a`: stale lease or `already_committed` |
+| 5 | **How many remediation actions were committed?** | Exactly **1** row in `action_results` with `status=committed` for the incident |
+
+### Tables the auditor may read (read-only)
+
+| Table | Fields judges care about |
+|-------|--------------------------|
+| `audit_events` | `event_type`, `lease_owner`, `lease_epoch`, `details_json`, `created_at` |
+| `action_intents` | `action_type`, `idempotency_key`, `status` |
+| `action_results` | `action_type`, `status`, `lease_owner`, `lease_epoch` |
+| `incidents` | `title`, `status`, `lease_owner`, `lease_epoch` |
+| `memories` | `label`, `kind` (content optional for transparency) |
+
+### Read-only role requirement
+
+```sql
+CREATE USER IF NOT EXISTS relayguard_mcp_auditor;
+GRANT CONNECT ON DATABASE relayguard TO relayguard_mcp_auditor;
+GRANT SELECT ON TABLE incidents, memories, audit_events, action_intents, action_results, checkpoints TO relayguard_mcp_auditor;
+-- No INSERT, UPDATE, DELETE, or ADMIN
+```
+
+MCP tools must **not** invoke workers, Bedrock, or `ccloud`. They return evidence only.
+
+### Local equivalent (before MCP is wired)
+
+```bash
+python -m apps.cli.audit_incident --incident-id <uuid>
+python -m apps.cli.audit_incident --incident-id <uuid> --json
+./scripts/capture-evidence.sh
+```
+
+`AuditReader` returns the same shape as the planned `relayguard.audit_incident` MCP tool.
+

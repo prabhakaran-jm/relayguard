@@ -26,7 +26,7 @@ echo "Database target: $DB_TARGET"
 if [[ "$DB_TARGET" == "cloud" ]]; then
   echo ""
   echo "==> Using CockroachDB Cloud (skipping local Docker)"
-  INCIDENT_ID="$(python -m apps.cli.create_incident --apply-schema --title "Hackathon demo incident" | tail -1)"
+  INCIDENT_ID="$(python -m apps.cli.create_incident --apply-schema --title "${RELAYGUARD_DEMO_TITLE:-Hackathon demo incident}" | tail -1)"
   echo "$INCIDENT_ID" > /tmp/relayguard_incident_id.txt
   echo "Incident ID: $INCIDENT_ID"
 else

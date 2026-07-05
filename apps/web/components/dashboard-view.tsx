@@ -11,6 +11,7 @@ import {
   actionDisplayLabel,
   selectionReasonDisplay,
   selectorDisplayLabel,
+  selectorMetaLabel,
 } from "@/lib/display-labels";
 
 type Props = {
@@ -22,10 +23,11 @@ export function DashboardView({ data, incidents }: Props) {
   const pass = data.invariant_status === "PASS";
   const actionLabel = actionDisplayLabel(data.selected_action);
   const selectorLabel = selectorDisplayLabel(data.selector_type);
+  const selectorMeta = selectorMetaLabel(data.selector_type);
   const reasonLabel = selectionReasonDisplay(data.selection_reason, data.selector_type);
 
   return (
-    <main className="mx-auto min-h-screen max-w-7xl px-6 py-8">
+    <main className="mx-auto min-h-screen max-w-[1600px] px-8 py-8">
       <header className="mb-8">
         <div className="mb-2 flex items-center gap-3">
           <Shield className="h-8 w-8 text-accent-cyan" />
@@ -46,7 +48,11 @@ export function DashboardView({ data, incidents }: Props) {
               Selected: <strong className="text-[#e8f4ff]">{actionLabel}</strong>
             </span>
             <span>
-              Selector: <strong className="text-[#e8f4ff]">{selectorLabel}</strong>
+              Selector:{" "}
+              <strong className="text-[#e8f4ff]">{selectorLabel}</strong>
+              {selectorMeta ? (
+                <span className="ml-1 font-mono text-xs text-[#6b829e]">({selectorMeta})</span>
+              ) : null}
             </span>
             <span>
               Confidence:{" "}
@@ -66,24 +72,31 @@ export function DashboardView({ data, incidents }: Props) {
         )}
       </div>
 
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatusCard
           label="Selected action"
           value={actionLabel}
           monoCode={data.selected_action ?? undefined}
           icon={<Activity className="h-4 w-4" />}
         />
-        <StatusCard label="Committed actions" value={data.committed_action_count} tone="pass" />
+        <StatusCard
+          label="Committed actions"
+          value={data.committed_action_count}
+          tone="pass"
+          compactValue
+        />
         <StatusCard
           label="Stale commits rejected"
           value={data.stale_commit_rejection_count}
           tone={data.stale_commit_rejection_count > 0 ? "warn" : "default"}
+          compactValue
         />
         <StatusCard
           label="Invariants"
           value={data.invariant_status}
           tone={pass ? "pass" : "fail"}
           icon={pass ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+          compactValue
         />
       </div>
 
