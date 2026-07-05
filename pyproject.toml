@@ -1,0 +1,34 @@
+[project]
+name = "relayguard"
+version = "0.1.0"
+description = "Crash-safe action-control layer for incident-response agents"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "psycopg[binary]>=3.1",
+    "pydantic>=2.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+relayguard-create-incident = "apps.cli.create_incident:main"
+relayguard-worker = "apps.cli.run_worker:main"
+relayguard-verify = "apps.cli.verify_demo:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["relayguard*", "workers*", "apps*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "integration: tests that require a running CockroachDB instance",
+]
