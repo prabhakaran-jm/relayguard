@@ -23,8 +23,7 @@
 |------|-----|
 | **GitHub** | https://github.com/prabhakaran-jm/relayguard *(public)* |
 | **Demo app** | https://relayguard-production.up.railway.app — live judge dashboard (Railway); local: [`scripts/run-web.ps1`](scripts/run-web.ps1) |
-| **Demo video** | `https://youtu.be/YOUR_VIDEO_ID` *(replace before Devpost submit)* |
-| **Devpost** | `https://devpost.com/software/relayguard` *(replace with final project URL)* |
+| **Demo video** | https://youtu.be/MtIjmXcdwDc |
 
 ## Problem
 
@@ -134,9 +133,13 @@ Read-only judge UI — proof cards, MemoryGate verdicts, story-ordered timeline,
 
 ## Architecture
 
-![RelayGuard architecture](docs/architecture-diagram.png)
+<p align="center">
+  <a href="docs/architecture-diagram.png">
+    <img src="docs/architecture-diagram.png" alt="RelayGuard architecture" width="100%" />
+  </a>
+</p>
 
-Full diagram: [`docs/architecture-diagram.md`](docs/architecture-diagram.md) · PNG · SVG
+Full diagram: [`docs/architecture-diagram.md`](docs/architecture-diagram.md) · [PNG](docs/architecture-diagram.png) · [SVG](docs/architecture-diagram.svg) (click PNG for full resolution)
 
 ## Testing
 

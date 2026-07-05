@@ -67,12 +67,14 @@ Exported images:
 - [`architecture-diagram.png`](./architecture-diagram.png)
 - [`architecture-diagram.svg`](./architecture-diagram.svg)
 
-Regenerate:
+Regenerate (high-res PNG for README / Devpost):
 
 ```bash
-npx @mermaid-js/mermaid-cli -i docs/architecture-diagram.mmd -o docs/architecture-diagram.png -b transparent
-npx @mermaid-js/mermaid-cli -i docs/architecture-diagram.mmd -o docs/architecture-diagram.svg
+npx @mermaid-js/mermaid-cli -i docs/architecture-diagram.mmd -o docs/architecture-diagram.png -b transparent -s 3 -w 2400
+npx @mermaid-js/mermaid-cli -i docs/architecture-diagram.mmd -o docs/architecture-diagram.svg -b transparent
 ```
+
+`-s 3` scales fonts and nodes; `-w 2400` sets minimum width (output ~7150×1500 px PNG).
 
 ## Demo story (10 steps)
 
