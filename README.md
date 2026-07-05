@@ -40,7 +40,7 @@ RelayGuard sits between agents and the systems they act on:
 
 
 
-1. **Retrieve** semantically similar runbooks and outcomes (CockroachDB VECTOR)
+1. **Retrieve** semantically similar runbooks and outcomes from a 60+ memory corpus (CockroachDB VECTOR; embeddings via Amazon Bedrock Titan or deterministic local provider)
 
 2. **Classify** memories with MemoryGate (`USE` / `INSPECT` / `AVOID`)
 
@@ -150,6 +150,8 @@ DATABASE_URL_CLOUD=postgresql://...
 
 COCKROACH_VECTOR_MODE=auto
 
+EMBEDDING_PROVIDER=bedrock     # Titan v2 embeddings (256-dim); omit for deterministic local
+
 ```
 
 
@@ -218,7 +220,7 @@ Read-only judge UI — proof cards, MemoryGate verdicts, story-ordered timeline,
 
 | **CockroachDB** | Cloud | System of record — incidents, memories, checkpoints, ledger, audit |
 
-| **CockroachDB** | Distributed Vector Indexing | `VECTOR(64)` retrieval + MemoryGate verdicts |
+| **CockroachDB** | Distributed Vector Indexing | `VECTOR` retrieval over 60+ memory corpus (64-dim local / 256-dim Titan) + MemoryGate verdicts |
 
 | **CockroachDB** | Managed MCP | Read-only audit — [`docs/mcp-auditor.md`](docs/mcp-auditor.md) · [`mcp_worker_rejection_answer.png`](docs/evidence/mcp_worker_rejection_answer.png) |
 
@@ -230,7 +232,7 @@ Read-only judge UI — proof cards, MemoryGate verdicts, story-ordered timeline,
 
 | **AWS** | CloudWatch | Worker logs — [`docs/evidence/m6_cloudwatch_logs.png`](docs/evidence/m6_cloudwatch_logs.png) |
 
-| **AWS** | Bedrock | Guarded selector — `ACTION_SELECTOR=bedrock`, [`scripts/run-bedrock-demo.ps1`](scripts/run-bedrock-demo.ps1) |
+| **AWS** | Bedrock | Guarded selector — `ACTION_SELECTOR=bedrock`, [`scripts/run-bedrock-demo.ps1`](scripts/run-bedrock-demo.ps1) · Titan v2 embeddings — `EMBEDDING_PROVIDER=bedrock` |
 
 
 
@@ -266,7 +268,7 @@ Full diagram: [`docs/architecture-diagram.md`](docs/architecture-diagram.md) · 
 
 
 
-**66/66** tests — integration tests use Docker CockroachDB locally.
+**78/78** tests — integration tests use Docker CockroachDB locally.
 
 
 
@@ -299,7 +301,9 @@ Captured proof for judges: [`docs/evidence/README.md`](docs/evidence/README.md)
 
 
 
-- Bedrock selector optional — mock default for CI and Lambda demo; live Bedrock via `run-bedrock-demo`
+- Bedrock selector and Titan embeddings optional — deterministic defaults for CI; live Bedrock via `run-bedrock-demo` / `EMBEDDING_PROVIDER=bedrock`
+
+- Serializable-conflict retries (`40001`) handled per store operation with exponential backoff
 
 - RelayGuard coordinates remediation in its ledger — it does not guarantee single execution on external systems outside that path
 

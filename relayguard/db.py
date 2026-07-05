@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+import random
+import time
 from contextlib import contextmanager
-from typing import Generator
+from typing import Callable, Generator, TypeVar
 from urllib.parse import urlparse, urlunparse
 
 import psycopg
@@ -12,6 +14,28 @@ from pydantic import BaseModel
 from relayguard.config import Settings, describe_database_target, redact_database_url
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
+
+
+def run_with_retry(fn: Callable[[], T], conn: psycopg.Connection | None = None, *, max_retries: int = 3) -> T:
+    """Run fn, retrying on CockroachDB serialization failures (SQLSTATE 40001).
+
+    fn must be the whole read-modify-write unit (e.g. a full store method call)
+    so a retry re-executes the entire transaction, not just part of it.
+    """
+    for attempt in range(max_retries + 1):
+        try:
+            return fn()
+        except psycopg.Error as exc:
+            sqlstate = getattr(exc, "sqlstate", None) or getattr(getattr(exc, "diag", None), "sqlstate", None)
+            if sqlstate != "40001" or attempt >= max_retries:
+                raise
+            if conn is not None:
+                conn.rollback()
+            backoff = min(0.05 * 2**attempt + random.uniform(0, 0.05), 1.0)
+            logger.warning("Retrying after serialization failure (attempt %d): %s", attempt + 1, exc)
+            time.sleep(backoff)
 
 
 class DatabaseStatus(BaseModel):
@@ -78,7 +102,7 @@ def apply_schema(settings: Settings | None = None) -> str:
                         with conn.cursor() as cur:
                             cur.execute(stmt)
 
-        embedding_mode = ensure_embedding_column(conn, cfg.cockroach_vector_mode)
+        embedding_mode = ensure_embedding_column(conn, cfg.cockroach_vector_mode, cfg.embedding_dimensions)
         _try_create_vector_index(conn, embedding_mode)
 
     logger.info("Embedding storage mode active: %s", embedding_mode)
@@ -104,9 +128,37 @@ def detect_embedding_storage(conn: psycopg.Connection) -> str:
         return "none"
 
 
-def ensure_embedding_column(conn: psycopg.Connection, vector_mode: str) -> str:
+def _vector_column_dimensions(conn: psycopg.Connection) -> int | None:
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT crdb_sql_type FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'memories' AND column_name = 'embedding'
+                """
+            )
+            row = cur.fetchone()
+    except psycopg.Error:
+        return None
+    if row is None:
+        return None
+    sql_type = str(row["crdb_sql_type"])
+    match = sql_type.upper().removeprefix("VECTOR(").removesuffix(")")
+    return int(match) if match.isdigit() else None
+
+
+def ensure_embedding_column(conn: psycopg.Connection, vector_mode: str, dimensions: int = 64) -> str:
     existing = detect_embedding_storage(conn)
     if existing != "none":
+        if existing == "vector":
+            existing_dim = _vector_column_dimensions(conn)
+            if existing_dim is not None and existing_dim != dimensions:
+                logger.warning(
+                    "Existing embedding column is VECTOR(%d) but configured dimensions is %d; "
+                    "keeping existing column (no migration performed)",
+                    existing_dim,
+                    dimensions,
+                )
         logger.info("Using existing embedding column type: %s", existing)
         return existing
 
@@ -118,7 +170,7 @@ def ensure_embedding_column(conn: psycopg.Connection, vector_mode: str) -> str:
     if vector_mode in ("auto", "vector"):
         try:
             with conn.cursor() as cur:
-                cur.execute("ALTER TABLE memories ADD COLUMN IF NOT EXISTS embedding VECTOR(64)")
+                cur.execute(f"ALTER TABLE memories ADD COLUMN IF NOT EXISTS embedding VECTOR({dimensions})")
             return "vector"
         except psycopg.Error:
             if vector_mode == "vector":

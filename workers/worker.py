@@ -1,18 +1,38 @@
 from __future__ import annotations
 
+from typing import Callable, TypeVar
 from uuid import UUID
 
 from relayguard.action_selector import build_selector_context, get_action_selector
 from relayguard.config import Settings
-from relayguard.embeddings import DeterministicEmbeddingProvider
+from relayguard.db import run_with_retry
+from relayguard.embeddings import get_embedding_provider
 from relayguard.models import ActionType, CheckpointState, MemoryClassification
 from relayguard.store import DuplicateIntentError, RelayStore, StaleLeaseError
 from workers.memory_gate import classify_memory
 from workers.memory_retriever import retrieve_similar_memories
 
+T = TypeVar("T")
+
 
 def log(msg: str) -> None:
     print(msg, flush=True)
+
+
+def _commit_unit(store: RelayStore, fn: Callable[[], T]) -> T:
+    """Run one store read-modify-write unit with retry-on-contention, committing per unit.
+
+    This is the retry boundary: on SQLSTATE 40001 the whole unit (including its
+    initial reads) re-runs, and each unit commits independently so a later retry
+    doesn't redo already-committed work.
+    """
+
+    def _attempt() -> T:
+        result = fn()
+        store.conn.commit()
+        return result
+
+    return run_with_retry(_attempt, store.conn)
 
 
 def _retrieve_and_classify_memories(
@@ -22,7 +42,7 @@ def _retrieve_and_classify_memories(
     worker_id: str,
     lease_epoch: int,
 ) -> CheckpointState:
-    embedder = DeterministicEmbeddingProvider()
+    embedder = get_embedding_provider(store.settings)
     retrieved = retrieve_similar_memories(
         store,
         incident_id,
@@ -134,7 +154,7 @@ def run_worker(store: RelayStore, incident_id: UUID, settings: Settings) -> int:
     log(f"[{worker_id}] starting for incident {incident_id}")
 
     try:
-        incident = store.claim_incident(incident_id, worker_id)
+        incident = _commit_unit(store, lambda: store.claim_incident(incident_id, worker_id))
     except StaleLeaseError as exc:
         log(f"[{worker_id}] claim failed: {exc}")
         return 1
@@ -149,7 +169,7 @@ def run_worker(store: RelayStore, incident_id: UUID, settings: Settings) -> int:
         state = _retrieve_and_classify_memories(
             store, incident_id, incident.title, worker_id, incident.lease_epoch
         )
-        store.save_checkpoint(incident_id, worker_id, incident.lease_epoch, state)
+        _commit_unit(store, lambda: store.save_checkpoint(incident_id, worker_id, incident.lease_epoch, state))
 
     if state.intent_id is None:
         existing = store.get_reserved_intent(incident_id)
@@ -172,12 +192,15 @@ def run_worker(store: RelayStore, incident_id: UUID, settings: Settings) -> int:
             idempotency_key = f"{incident_id}:{action.value}:v1"
             log(f"[{worker_id}] reserving action {action.value} (idempotency={idempotency_key})")
             try:
-                intent = store.reserve_action_intent(
-                    incident_id,
-                    action,
-                    idempotency_key,
-                    worker_id,
-                    incident.lease_epoch,
+                intent = _commit_unit(
+                    store,
+                    lambda: store.reserve_action_intent(
+                        incident_id,
+                        action,
+                        idempotency_key,
+                        worker_id,
+                        incident.lease_epoch,
+                    ),
                 )
             except DuplicateIntentError as exc:
                 log(f"[{worker_id}] duplicate intent rejected: {exc}")
@@ -187,7 +210,7 @@ def run_worker(store: RelayStore, incident_id: UUID, settings: Settings) -> int:
             state.intent_id = str(intent.intent_id)
             state.idempotency_key = idempotency_key
             state.phase = "checkpoint.action_reserved"
-            store.save_checkpoint(incident_id, worker_id, incident.lease_epoch, state)
+            _commit_unit(store, lambda: store.save_checkpoint(incident_id, worker_id, incident.lease_epoch, state))
             log(f"[{worker_id}] action reserved intent_id={intent.intent_id}")
 
             if settings.fail_after == "ACTION_RESERVED":
@@ -196,14 +219,14 @@ def run_worker(store: RelayStore, incident_id: UUID, settings: Settings) -> int:
 
     intent_id = UUID(state.intent_id)
     log(f"[{worker_id}] committing action intent_id={intent_id}")
-    result = store.commit_action(incident_id, intent_id, worker_id, incident.lease_epoch)
+    result = _commit_unit(store, lambda: store.commit_action(incident_id, intent_id, worker_id, incident.lease_epoch))
     if result is None:
         log(f"[{worker_id}] commit rejected (stale lease or already committed)")
         return 1
 
     log(f"[{worker_id}] action committed result_id={result.result_id}")
     state.phase = "checkpoint.completed"
-    store.save_checkpoint(incident_id, worker_id, incident.lease_epoch, state)
+    _commit_unit(store, lambda: store.save_checkpoint(incident_id, worker_id, incident.lease_epoch, state))
     log(f"[{worker_id}] done")
     return 0
 
@@ -211,7 +234,7 @@ def run_worker(store: RelayStore, incident_id: UUID, settings: Settings) -> int:
 def run_stale_commit(store: RelayStore, incident_id: UUID, worker_id: str, lease_epoch: int, intent_id: UUID) -> bool:
     """Attempt commit with a stale lease epoch (demo step 10)."""
     log(f"[{worker_id}] stale commit attempt epoch={lease_epoch}")
-    result = store.commit_action(incident_id, intent_id, worker_id, lease_epoch)
+    result = _commit_unit(store, lambda: store.commit_action(incident_id, intent_id, worker_id, lease_epoch))
     if result is None:
         log(f"[{worker_id}] stale commit rejected as expected")
         return False

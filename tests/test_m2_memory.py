@@ -8,7 +8,8 @@ from psycopg.rows import dict_row
 
 from relayguard.config import Settings
 from relayguard.db import apply_schema
-from relayguard.embeddings import DeterministicEmbeddingProvider, cosine_similarity
+from relayguard.demo_corpus import DEMO_CORPUS
+from relayguard.embeddings import BedrockTitanEmbeddingProvider, DeterministicEmbeddingProvider, cosine_similarity
 from relayguard.models import ActionType, MemoryKind
 from relayguard.store import RelayStore
 from workers.memory_gate import classify_memory
@@ -39,18 +40,89 @@ def test_deterministic_embeddings_rank_demo_memories_above_unrelated() -> None:
     unrelated_content = "Quarterly billing report template for finance team."
 
     demo_scores = [
-        cosine_similarity(
-            query,
-            embedder.embed(content, memory_kind=kind.value),
-        )
+        cosine_similarity(query, embedder.embed(content))
         for kind, content in demo_contents.items()
     ]
-    unrelated_score = cosine_similarity(
-        query,
-        embedder.embed(unrelated_content, memory_kind=MemoryKind.UNRELATED.value),
-    )
+    unrelated_score = cosine_similarity(query, embedder.embed(unrelated_content))
 
     assert min(demo_scores) > unrelated_score
+
+
+def test_demo_corpus_is_realistic_scale_with_no_duplicate_labels() -> None:
+    assert len(DEMO_CORPUS) >= 50
+    labels = [label for label, _, _ in DEMO_CORPUS]
+    assert len(labels) == len(set(labels))
+    for original in ("current_runbook", "expired_runbook", "failed_restart", "historical_incident", "unrelated_finance"):
+        assert original in labels
+
+
+def test_demo_corpus_top5_surfaces_signal_over_noise() -> None:
+    embedder = DeterministicEmbeddingProvider()
+    incident_text = "API latency spike in us-east-1"
+    query = embedder.embed(incident_text, is_query=True)
+
+    scored = sorted(
+        (
+            (cosine_similarity(query, embedder.embed(content)), label, kind.value)
+            for label, content, kind in DEMO_CORPUS
+        ),
+        reverse=True,
+    )
+    top5_labels = {label for _, label, _ in scored[:5]}
+    top3_kinds = [kind for _, _, kind in scored[:3]]
+
+    assert "current_runbook" in top5_labels
+    assert "historical_incident" in top5_labels
+    assert MemoryKind.UNRELATED.value not in top3_kinds
+
+
+def test_deterministic_embeddings_ignore_memory_kind() -> None:
+    """memory_kind is accepted for interface compatibility but must not affect the vector."""
+    embedder = DeterministicEmbeddingProvider()
+    content = "Route traffic to standby when primary health checks fail."
+    assert embedder.embed(content) == embedder.embed(content, memory_kind="current_runbook")
+    assert embedder.embed(content) == embedder.embed(content, memory_kind="unrelated")
+
+
+class _FakeBedrockBody:
+    def __init__(self, payload: bytes) -> None:
+        self._payload = payload
+
+    def read(self) -> bytes:
+        return self._payload
+
+
+class _FakeBedrockClient:
+    def __init__(self) -> None:
+        self.last_kwargs: dict[str, object] = {}
+
+    def invoke_model(self, *, modelId: str, body: str):
+        import json
+
+        self.last_kwargs = {"modelId": modelId, "body": json.loads(body)}
+        embedding = [0.1] * json.loads(body)["dimensions"]
+        return {"body": _FakeBedrockBody(json.dumps({"embedding": embedding}).encode())}
+
+
+def test_bedrock_titan_embedding_provider_builds_expected_request() -> None:
+    fake_client = _FakeBedrockClient()
+    provider = BedrockTitanEmbeddingProvider(dimensions=256, client=fake_client)
+
+    result = provider.embed("API latency spike in us-east-1")
+
+    assert fake_client.last_kwargs["modelId"] == "amazon.titan-embed-text-v2:0"
+    assert fake_client.last_kwargs["body"] == {
+        "inputText": "API latency spike in us-east-1",
+        "dimensions": 256,
+        "normalize": True,
+    }
+    assert len(result) == 256
+    assert provider.dimensions == 256
+
+
+def test_bedrock_titan_embedding_provider_rejects_unsupported_dimensions() -> None:
+    with pytest.raises(ValueError):
+        BedrockTitanEmbeddingProvider(dimensions=128)
 
 
 def test_memory_gate_expired_runbook_has_avoid_reason() -> None:
@@ -98,7 +170,10 @@ def test_semantic_retrieval_returns_ranked_memories(settings: Settings, db_avail
         )
         assert len(results) >= 4
         labels = [item.metadata["label"] for item in results]
-        assert results[-1].metadata["label"] == "unrelated_finance"
+        assert "current_runbook" in labels
+        assert "historical_incident" in labels
+        top3_kinds = [item.memory_type for item in results[:3]]
+        assert MemoryKind.UNRELATED.value not in top3_kinds
         assert results[0].similarity_score >= results[-1].similarity_score
     finally:
         conn.close()

@@ -9,7 +9,8 @@ import psycopg
 
 from relayguard.config import Settings
 from relayguard.db import detect_embedding_storage
-from relayguard.embeddings import DeterministicEmbeddingProvider, vector_literal
+from relayguard.demo_corpus import DEMO_CORPUS
+from relayguard.embeddings import get_embedding_provider, vector_literal
 from relayguard.models import (
     ActionIntent,
     ActionIntentStatus,
@@ -75,48 +76,57 @@ class RelayStore:
         return incident
 
     def seed_demo_memories(self, incident_id: UUID) -> list[Memory]:
-        embedder = DeterministicEmbeddingProvider()
-        seeds = [
-            ("current_runbook", "Route traffic to standby when primary health checks fail.", MemoryKind.CURRENT_RUNBOOK),
-            ("expired_runbook", "Restart primary node immediately (deprecated 2024-Q1).", MemoryKind.EXPIRED_RUNBOOK),
-            ("failed_restart", "Prior restart attempt caused cascading failure.", MemoryKind.FAILED_RESTART),
-            ("historical_incident", "Similar outage in us-east-1 resolved via standby routing.", MemoryKind.HISTORICAL_INCIDENT),
-            ("unrelated_finance", "Quarterly billing report template for finance team.", MemoryKind.UNRELATED),
-        ]
-        memories: list[Memory] = []
+        embedder = get_embedding_provider(self.settings)
+        seeds = DEMO_CORPUS
         has_embedding = self._embedding_storage()
-        for label, content, kind in seeds:
-            embedding = embedder.embed(content, memory_kind=kind.value)
-            if has_embedding == "vector":
-                row = self._fetchone(
-                    """
-                    INSERT INTO memories (incident_id, label, content, memory_kind, embedding)
-                    VALUES (%s, %s, %s, %s, %s::VECTOR)
-                    RETURNING memory_id, incident_id, label, content, memory_kind, embedding
-                    """,
-                    (incident_id, label, content, kind.value, vector_literal(embedding)),
-                )
-            elif has_embedding == "float8[]":
-                row = self._fetchone(
-                    """
-                    INSERT INTO memories (incident_id, label, content, memory_kind, embedding)
-                    VALUES (%s, %s, %s, %s, %s::FLOAT8[])
-                    RETURNING memory_id, incident_id, label, content, memory_kind, embedding
-                    """,
-                    (incident_id, label, content, kind.value, embedding),
-                )
-            else:
-                row = self._fetchone(
-                    """
-                    INSERT INTO memories (incident_id, label, content, memory_kind)
-                    VALUES (%s, %s, %s, %s)
-                    RETURNING memory_id, incident_id, label, content, memory_kind
-                    """,
-                    (incident_id, label, content, kind.value),
-                )
-                row = dict(row)
-                row["embedding"] = embedding
-            memories.append(_memory_from_row(row))
+        embeddings = [embedder.embed(content) for _, content, _ in seeds]
+
+        # Batch as one multi-row INSERT ... RETURNING instead of N round-trips
+        # (seeds is 60+ rows; single-row inserts to a cloud DB add up).
+        if has_embedding == "vector":
+            values_sql = ", ".join(["(%s, %s, %s, %s, %s::VECTOR)"] * len(seeds))
+            params: list[Any] = []
+            for (label, content, kind), embedding in zip(seeds, embeddings):
+                params.extend([incident_id, label, content, kind.value, vector_literal(embedding)])
+            rows = self._fetchall(
+                f"""
+                INSERT INTO memories (incident_id, label, content, memory_kind, embedding)
+                VALUES {values_sql}
+                RETURNING memory_id, incident_id, label, content, memory_kind, embedding
+                """,
+                tuple(params),
+            )
+        elif has_embedding == "float8[]":
+            values_sql = ", ".join(["(%s, %s, %s, %s, %s::FLOAT8[])"] * len(seeds))
+            params = []
+            for (label, content, kind), embedding in zip(seeds, embeddings):
+                params.extend([incident_id, label, content, kind.value, embedding])
+            rows = self._fetchall(
+                f"""
+                INSERT INTO memories (incident_id, label, content, memory_kind, embedding)
+                VALUES {values_sql}
+                RETURNING memory_id, incident_id, label, content, memory_kind, embedding
+                """,
+                tuple(params),
+            )
+        else:
+            values_sql = ", ".join(["(%s, %s, %s, %s)"] * len(seeds))
+            params = []
+            for label, content, kind in seeds:
+                params.extend([incident_id, label, content, kind.value])
+            rows = self._fetchall(
+                f"""
+                INSERT INTO memories (incident_id, label, content, memory_kind)
+                VALUES {values_sql}
+                RETURNING memory_id, incident_id, label, content, memory_kind
+                """,
+                tuple(params),
+            )
+            embedding_by_label = {label: emb for (label, _, _), emb in zip(seeds, embeddings)}
+            for row in rows:
+                row["embedding"] = embedding_by_label[row["label"]]
+
+        memories = [_memory_from_row(row) for row in rows]
         self.write_audit(
             incident_id,
             "memories.seeded",

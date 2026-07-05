@@ -37,6 +37,8 @@ class Settings:
     aws_region: str
     incident_severity: str
     action_min_confidence: float
+    embedding_provider: str
+    embedding_dimensions: int
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -50,6 +52,11 @@ class Settings:
         db_target = _parse_db_target(os.environ.get("RELAYGUARD_DB_TARGET", "local"))
         vector_mode = _parse_vector_mode(os.environ.get("COCKROACH_VECTOR_MODE", "auto"))
         aws_region = os.environ.get("AWS_REGION", "us-east-1")
+        embedding_provider = os.environ.get("EMBEDDING_PROVIDER", "deterministic").lower()
+        default_embedding_dim = "256" if embedding_provider == "bedrock" else "64"
+        embedding_dimensions = int(
+            os.environ.get("EMBEDDING_DIMENSIONS", default_embedding_dim)
+        )
 
         if database_secret_name and not database_url_cloud:
             from relayguard.secrets import load_database_url_from_secret
@@ -86,6 +93,8 @@ class Settings:
             aws_region=aws_region,
             incident_severity=os.environ.get("INCIDENT_SEVERITY", "high"),
             action_min_confidence=float(os.environ.get("ACTION_MIN_CONFIDENCE", "0.5")),
+            embedding_provider=embedding_provider,
+            embedding_dimensions=embedding_dimensions,
         )
 
     def override(self, **kwargs: object) -> Settings:

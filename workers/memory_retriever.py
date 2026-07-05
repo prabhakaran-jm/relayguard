@@ -8,9 +8,9 @@ from uuid import UUID
 import psycopg
 
 from relayguard.embeddings import (
-    DeterministicEmbeddingProvider,
     EmbeddingProvider,
     cosine_similarity,
+    get_embedding_provider,
     vector_literal,
 )
 from relayguard.models import Memory, MemoryKind
@@ -46,7 +46,7 @@ def retrieve_similar_memories(
     provider: EmbeddingProvider | None = None,
     limit: int = 5,
 ) -> list[RetrievedMemory]:
-    embedder = provider or DeterministicEmbeddingProvider()
+    embedder = provider or get_embedding_provider(store.settings)
     query_vec = embedder.embed(incident_text, is_query=True)
 
     mode = store.get_embedding_mode()
@@ -104,7 +104,7 @@ def _search_in_python(
         else:
             score = cosine_similarity(
                 query_vec,
-                embedder.embed(memory.content, memory_kind=memory.memory_kind.value),
+                embedder.embed(memory.content),
             )
         scored.append(
             RetrievedMemory(

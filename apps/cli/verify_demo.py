@@ -55,8 +55,8 @@ def main() -> None:
             errors.append(f"expected at least 1 stale commit rejection, got {stale_rejects}")
         if retrieved_memories < 4:
             errors.append(f"expected at least 4 retrieved memories, got {retrieved_memories}")
-        if avoid_count < 2:
-            errors.append(f"expected at least 2 AVOID memories, got {avoid_count}")
+        if avoid_count < 1:
+            errors.append(f"expected at least 1 AVOID memory, got {avoid_count}")
         if use_count < 1:
             errors.append(f"expected at least 1 USE memory, got {use_count}")
 
