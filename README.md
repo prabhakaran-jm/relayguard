@@ -53,6 +53,48 @@ CockroachDB gives RelayGuard:
 
 > The first local proof mocks the model with a deterministic `ROUTE_TO_STANDBY` decision. Bedrock is not called yet.
 
+## M2: Semantic memory retrieval
+
+RelayGuard separates **retrieval** from **validation**:
+
+| Layer | Role |
+|-------|------|
+| **Vector retrieval** | Ranks memories by semantic similarity to the incident description |
+| **MemoryGate** | Deterministic safety policy — high similarity does not override `AVOID` |
+
+Retrieval uses CockroachDB `VECTOR(64)` columns with cosine distance (`<=>`). A `DeterministicEmbeddingProvider` keeps tests stable locally; swap in Bedrock Titan via the `EmbeddingProvider` protocol later.
+
+### M2 demo output (excerpt)
+
+```
+[worker-a] score=0.842 current_runbook verdict=USE reason=active runbook approved for current incident response
+[worker-a] score=0.791 historical_incident verdict=INSPECT reason=related historical incident requires human review
+[worker-a] score=0.756 expired_runbook verdict=AVOID reason=runbook is expired or deprecated
+[worker-a] score=0.731 failed_restart verdict=AVOID reason=prior action failed and must not be repeated
+[worker-a] score=0.214 unrelated_finance verdict=AVOID reason=memory is unrelated to the active incident
+```
+
+Verification confirms:
+
+```
+Committed actions: 1
+Stale commits rejected: 1
+Retrieved memories: 5
+AVOID memories: 3
+USE memories: 1
+```
+
+### Vector indexing
+
+Local OSS CockroachDB does not include the `VECTOR` type (enterprise license required). RelayGuard automatically falls back to `FLOAT8[]` storage and Python-side cosine ranking locally. On **CockroachDB Cloud** with vector support enabled:
+
+```sql
+ALTER TABLE memories ADD COLUMN IF NOT EXISTS embedding VECTOR(64);
+CREATE VECTOR INDEX IF NOT EXISTS idx_memories_embedding ON memories (embedding);
+```
+
+See `relayguard/db.py` (`_ensure_embedding_column`) and `db/migrations/002_vector_memory.sql`.
+
 ## Local demo instructions
 
 ### Prerequisites
@@ -124,9 +166,10 @@ docker compose -f infra/docker-compose.yml up -d
 
 | Judging criterion | RelayGuard proof |
 |-------------------|------------------|
-| **CockroachDB integration** | Lease fencing, checkpoints, action ledger, audit events — all in CockroachDB |
+| **CockroachDB integration** | Lease fencing, vector memory retrieval, checkpoints, action ledger, audit events |
+| **Vector search** | `VECTOR(64)` embeddings with cosine ranking; MemoryGate validates retrieved memories |
 | **AWS integration** | Architecture planned; Bedrock for action selection, Lambda workers, API Gateway intake |
-| **Agent safety** | MemoryGate rejects expired/failed memories; stale workers cannot commit |
+| **Agent safety** | MemoryGate rejects expired/failed memories regardless of similarity score |
 | **Crash recovery** | Worker B resumes from checkpoint after Worker A crash |
 | **Exactly-once actions** | Idempotent `action_intents` + single `action_results` commit |
 | **Auditability** | `audit_events` table records every state transition and rejection |
@@ -136,8 +179,8 @@ docker compose -f infra/docker-compose.yml up -d
 
 ```
 apps/cli/          CLI entry points
-workers/           MemoryGate + worker runtime
-relayguard/        Models, store, DB helpers
+relayguard/        Models, store, embeddings, DB helpers
+workers/           MemoryGate, memory retriever, worker runtime
 db/                CockroachDB schema
 infra/             Docker Compose for local CockroachDB
 scripts/           Demo and verification scripts

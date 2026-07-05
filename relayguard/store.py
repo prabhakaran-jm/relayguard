@@ -8,6 +8,7 @@ from uuid import UUID
 import psycopg
 
 from relayguard.config import Settings
+from relayguard.embeddings import DeterministicEmbeddingProvider, vector_literal
 from relayguard.models import (
     ActionIntent,
     ActionIntentStatus,
@@ -73,23 +74,48 @@ class RelayStore:
         return incident
 
     def seed_demo_memories(self, incident_id: UUID) -> list[Memory]:
+        embedder = DeterministicEmbeddingProvider()
         seeds = [
             ("current_runbook", "Route traffic to standby when primary health checks fail.", MemoryKind.CURRENT_RUNBOOK),
             ("expired_runbook", "Restart primary node immediately (deprecated 2024-Q1).", MemoryKind.EXPIRED_RUNBOOK),
             ("failed_restart", "Prior restart attempt caused cascading failure.", MemoryKind.FAILED_RESTART),
             ("historical_incident", "Similar outage in us-east-1 resolved via standby routing.", MemoryKind.HISTORICAL_INCIDENT),
+            ("unrelated_finance", "Quarterly billing report template for finance team.", MemoryKind.UNRELATED),
         ]
         memories: list[Memory] = []
+        has_embedding = self._embedding_storage()
         for label, content, kind in seeds:
-            row = self._fetchone(
-                """
-                INSERT INTO memories (incident_id, label, content, memory_kind)
-                VALUES (%s, %s, %s, %s)
-                RETURNING memory_id, incident_id, label, content, memory_kind
-                """,
-                (incident_id, label, content, kind.value),
-            )
-            memories.append(Memory.model_validate(row))
+            embedding = embedder.embed(content, memory_kind=kind.value)
+            if has_embedding == "vector":
+                row = self._fetchone(
+                    """
+                    INSERT INTO memories (incident_id, label, content, memory_kind, embedding)
+                    VALUES (%s, %s, %s, %s, %s::VECTOR)
+                    RETURNING memory_id, incident_id, label, content, memory_kind, embedding
+                    """,
+                    (incident_id, label, content, kind.value, vector_literal(embedding)),
+                )
+            elif has_embedding == "float8[]":
+                row = self._fetchone(
+                    """
+                    INSERT INTO memories (incident_id, label, content, memory_kind, embedding)
+                    VALUES (%s, %s, %s, %s, %s::FLOAT8[])
+                    RETURNING memory_id, incident_id, label, content, memory_kind, embedding
+                    """,
+                    (incident_id, label, content, kind.value, embedding),
+                )
+            else:
+                row = self._fetchone(
+                    """
+                    INSERT INTO memories (incident_id, label, content, memory_kind)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING memory_id, incident_id, label, content, memory_kind
+                    """,
+                    (incident_id, label, content, kind.value),
+                )
+                row = dict(row)
+                row["embedding"] = embedding
+            memories.append(_memory_from_row(row))
         self.write_audit(
             incident_id,
             "memories.seeded",
@@ -164,14 +190,25 @@ class RelayStore:
         return claimed
 
     def get_memories(self, incident_id: UUID) -> list[Memory]:
+        storage = self._embedding_storage()
+        if storage == "none":
+            rows = self._fetchall(
+                """
+                SELECT memory_id, incident_id, label, content, memory_kind
+                FROM memories WHERE incident_id = %s ORDER BY created_at
+                """,
+                (incident_id,),
+            )
+            return [_memory_from_row(r) for r in rows]
+
         rows = self._fetchall(
             """
-            SELECT memory_id, incident_id, label, content, memory_kind
+            SELECT memory_id, incident_id, label, content, memory_kind, embedding
             FROM memories WHERE incident_id = %s ORDER BY created_at
             """,
             (incident_id,),
         )
-        return [Memory.model_validate(r) for r in rows]
+        return [_memory_from_row(r) for r in rows]
 
     def save_checkpoint(
         self,
@@ -207,7 +244,7 @@ class RelayStore:
         )
         self.write_audit(
             incident_id,
-            "checkpoint.saved",
+            state.phase if state.phase.startswith("checkpoint.") else f"checkpoint.{state.phase}",
             lease_owner=lease_owner,
             lease_epoch=lease_epoch,
             details={"phase": state.phase},
@@ -452,6 +489,22 @@ class RelayStore:
         )
         return [AuditEvent.model_validate(r) for r in rows]
 
+    def _embedding_storage(self) -> str:
+        row = self._fetchone(
+            """
+            SELECT data_type FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'memories' AND column_name = 'embedding'
+            """
+        )
+        if row is None:
+            return "none"
+        dtype = str(row["data_type"]).lower()
+        if "vector" in dtype:
+            return "vector"
+        if "array" in dtype or "float" in dtype:
+            return "float8[]"
+        return "none"
+
     def _execute(self, sql: str, params: tuple[Any, ...] = ()) -> None:
         with self.conn.cursor() as cur:
             cur.execute(sql, params)
@@ -465,3 +518,22 @@ class RelayStore:
         with self.conn.cursor() as cur:
             cur.execute(sql, params)
             return list(cur.fetchall())
+
+
+def _parse_embedding(raw: Any) -> list[float] | None:
+    if raw is None:
+        return None
+    if isinstance(raw, list):
+        return [float(x) for x in raw]
+    if isinstance(raw, str):
+        inner = raw.strip().strip("[]")
+        if not inner:
+            return None
+        return [float(part) for part in inner.split(",")]
+    return None
+
+
+def _memory_from_row(row: dict[str, Any]) -> Memory:
+    data = dict(row)
+    data["embedding"] = _parse_embedding(row.get("embedding"))
+    return Memory.model_validate(data)

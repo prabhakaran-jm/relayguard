@@ -19,6 +19,7 @@ class MemoryKind(StrEnum):
     EXPIRED_RUNBOOK = "expired_runbook"
     FAILED_RESTART = "failed_restart"
     HISTORICAL_INCIDENT = "historical_incident"
+    UNRELATED = "unrelated"
 
 
 class MemoryClassification(StrEnum):
@@ -52,6 +53,7 @@ class Memory(BaseModel):
     label: str
     content: str
     memory_kind: MemoryKind
+    embedding: list[float] | None = None
 
 
 class ClassifiedMemory(BaseModel):
@@ -61,7 +63,7 @@ class ClassifiedMemory(BaseModel):
 
 class CheckpointState(BaseModel):
     phase: str
-    classified_memories: list[dict[str, str]] = Field(default_factory=list)
+    classified_memories: list[dict[str, Any]] = Field(default_factory=list)
     selected_action: str | None = None
     intent_id: str | None = None
     idempotency_key: str | None = None

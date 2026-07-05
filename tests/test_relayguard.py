@@ -35,11 +35,13 @@ def _connect(settings: Settings) -> psycopg.Connection:
 
 
 def test_failed_memory_classified_as_avoid() -> None:
-    assert classify_memory(_memory(MemoryKind.FAILED_RESTART)).value == "AVOID"
+    verdict, _ = classify_memory(_memory(MemoryKind.FAILED_RESTART))
+    assert verdict.value == "AVOID"
 
 
 def test_expired_memory_classified_as_avoid() -> None:
-    assert classify_memory(_memory(MemoryKind.EXPIRED_RUNBOOK)).value == "AVOID"
+    verdict, _ = classify_memory(_memory(MemoryKind.EXPIRED_RUNBOOK))
+    assert verdict.value == "AVOID"
 
 
 @pytest.fixture(scope="session")
@@ -155,7 +157,7 @@ def test_worker_b_resumes_from_checkpoint(incident, settings: Settings) -> None:
         assert checkpoint is not None
         state, owner, _ = checkpoint
         assert owner == "worker-b"
-        assert state.phase == "completed"
+        assert state.phase == "checkpoint.completed"
         assert state.intent_id is not None
     finally:
         conn.close()
