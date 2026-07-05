@@ -12,6 +12,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+bedrock = ["boto3>=1.34"]
 
 [project.scripts]
 relayguard-create-incident = "apps.cli.create_incident:main"

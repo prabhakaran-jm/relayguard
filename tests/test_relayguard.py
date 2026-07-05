@@ -88,12 +88,7 @@ def test_duplicate_action_intent_rejected(store: RelayStore, incident) -> None:
 
 @pytest.mark.integration
 def test_stale_worker_cannot_commit(store: RelayStore, incident, settings: Settings) -> None:
-    settings_short = Settings(
-        database_url=settings.database_url,
-        lease_ttl_seconds=1,
-        worker_id="worker-a",
-        fail_after=None,
-    )
+    settings_short = settings.override(lease_ttl_seconds=1, worker_id="worker-a", fail_after=None)
     store.settings = settings_short
 
     claimed_a = store.claim_incident(incident, "worker-a")
@@ -120,11 +115,8 @@ def test_stale_worker_cannot_commit(store: RelayStore, incident, settings: Setti
 
 @pytest.mark.integration
 def test_worker_b_resumes_from_checkpoint(incident, settings: Settings) -> None:
-    settings_a = Settings(
-        database_url=settings.database_url,
-        lease_ttl_seconds=2,
-        worker_id="worker-a",
-        fail_after="ACTION_RESERVED",
+    settings_a = settings.override(
+        lease_ttl_seconds=2, worker_id="worker-a", fail_after="ACTION_RESERVED"
     )
 
     conn = _connect(settings)
@@ -136,12 +128,7 @@ def test_worker_b_resumes_from_checkpoint(incident, settings: Settings) -> None:
 
     time.sleep(3)
 
-    settings_b = Settings(
-        database_url=settings.database_url,
-        lease_ttl_seconds=5,
-        worker_id="worker-b",
-        fail_after=None,
-    )
+    settings_b = settings.override(lease_ttl_seconds=5, worker_id="worker-b", fail_after=None)
     conn = _connect(settings)
     try:
         code = run_worker(RelayStore(conn, settings_b), incident, settings_b)

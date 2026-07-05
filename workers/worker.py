@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from relayguard.action_selector import build_selector_context, get_action_selector
 from relayguard.config import Settings
 from relayguard.embeddings import DeterministicEmbeddingProvider
-from relayguard.models import ActionType, CheckpointState
+from relayguard.models import ActionType, CheckpointState, MemoryClassification
 from relayguard.store import DuplicateIntentError, RelayStore, StaleLeaseError
 from workers.memory_gate import classify_memory
 from workers.memory_retriever import retrieve_similar_memories
@@ -12,11 +13,6 @@ from workers.memory_retriever import retrieve_similar_memories
 
 def log(msg: str) -> None:
     print(msg, flush=True)
-
-
-def select_action() -> ActionType:
-    """Deterministic mock model decision (Bedrock not called)."""
-    return ActionType.ROUTE_TO_STANDBY
 
 
 def _retrieve_and_classify_memories(
@@ -54,7 +50,7 @@ def _retrieve_and_classify_memories(
         },
     )
 
-    classified_rows: list[dict[str, str | float]] = []
+    classified_rows: list[dict[str, str | float | None]] = []
     for item in retrieved:
         memory = item.memory
         verdict, reason = classify_memory(memory)
@@ -76,19 +72,61 @@ def _retrieve_and_classify_memories(
             f"[{worker_id}] score={item.similarity_score:.3f} "
             f"{memory.label} verdict={verdict.value} reason={reason}"
         )
-        classified_rows.append(
-            {
-                "label": memory.label,
-                "classification": verdict.value,
-                "reason": reason,
-                "similarity_score": item.similarity_score,
-            }
-        )
+        row: dict[str, str | float | None] = {
+            "memory_id": str(memory.memory_id),
+            "label": memory.label,
+            "classification": verdict.value,
+            "reason": reason,
+            "similarity_score": item.similarity_score,
+        }
+        if verdict in (MemoryClassification.USE, MemoryClassification.INSPECT):
+            row["content"] = memory.content
+        classified_rows.append(row)
 
     return CheckpointState(
         phase="checkpoint.memories_classified",
         classified_memories=classified_rows,
     )
+
+
+def _select_and_audit_action(
+    store: RelayStore,
+    incident_id: UUID,
+    incident_title: str,
+    settings: Settings,
+    state: CheckpointState,
+    worker_id: str,
+    lease_epoch: int,
+) -> ActionType:
+    selector = get_action_selector(settings)
+    context = build_selector_context(
+        incident_title,
+        settings.incident_severity,
+        state.classified_memories,
+    )
+    selection = selector.select_action(context)
+
+    store.write_audit(
+        incident_id,
+        "action.selected",
+        lease_owner=worker_id,
+        lease_epoch=lease_epoch,
+        details={
+            "selector_type": selection.selector_type,
+            "action_type": selection.action_type.value,
+            "confidence": selection.confidence,
+            "reason": selection.reason,
+            "used_memory_ids": selection.used_memory_ids,
+            "inspected_memory_ids": selection.inspected_memory_ids,
+            "fallback_used": selection.fallback_used,
+        },
+    )
+    log(
+        f"[{worker_id}] action.selected {selection.action_type.value} "
+        f"confidence={selection.confidence:.2f} selector={selection.selector_type}"
+        + (" fallback" if selection.fallback_used else "")
+    )
+    return selection.action_type
 
 
 def run_worker(store: RelayStore, incident_id: UUID, settings: Settings) -> int:
@@ -122,7 +160,15 @@ def run_worker(store: RelayStore, incident_id: UUID, settings: Settings) -> int:
             state.phase = "checkpoint.action_reserved"
             log(f"[{worker_id}] adopting reserved intent intent_id={existing.intent_id}")
         else:
-            action = select_action()
+            action = _select_and_audit_action(
+                store,
+                incident_id,
+                incident.title,
+                settings,
+                state,
+                worker_id,
+                incident.lease_epoch,
+            )
             idempotency_key = f"{incident_id}:{action.value}:v1"
             log(f"[{worker_id}] reserving action {action.value} (idempotency={idempotency_key})")
             try:

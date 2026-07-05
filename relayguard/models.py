@@ -30,6 +30,8 @@ class MemoryClassification(StrEnum):
 
 class ActionType(StrEnum):
     ROUTE_TO_STANDBY = "ROUTE_TO_STANDBY"
+    RESTART_SERVICE = "RESTART_SERVICE"
+    ESCALATE_TO_HUMAN = "ESCALATE_TO_HUMAN"
 
 
 class ActionIntentStatus(StrEnum):

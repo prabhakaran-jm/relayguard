@@ -51,7 +51,37 @@ CockroachDB gives RelayGuard:
 | **CloudWatch** | Alerts, structured logs, demo observability |
 | **Secrets Manager** | Database and model credentials |
 
-> The first local proof mocks the model with a deterministic `ROUTE_TO_STANDBY` decision. Bedrock is not called yet.
+> Local demo and CI use `ACTION_SELECTOR=mock` (default). Enable Bedrock for production-style selection.
+
+## M3: Bedrock action selection with guardrails
+
+RelayGuard replaces hard-coded action picks with a pluggable **ActionSelector**:
+
+| Component | Role |
+|-----------|------|
+| **MockActionSelector** | Default for local demo and CI — always selects `ROUTE_TO_STANDBY` |
+| **BedrockActionSelector** | Calls Amazon Bedrock Runtime when `ACTION_SELECTOR=bedrock` |
+| **RelayGuard validation** | Pydantic schema check, allowlist enforcement, confidence threshold |
+| **CockroachDB** | Still the system of record for intents, commits, and audit |
+
+**Allowed actions:** `ROUTE_TO_STANDBY`, `RESTART_SERVICE`, `ESCALATE_TO_HUMAN`
+
+**Safety rules:**
+- Bedrock must return strict JSON matching the schema
+- Unknown actions, invalid JSON, or low confidence → fallback to `ESCALATE_TO_HUMAN`
+- `AVOID` memory **content** is never passed to the selector (only blocked IDs + rejection reasons)
+- Bedrock never writes to CockroachDB and never generates shell commands
+
+Enable Bedrock:
+
+```bash
+ACTION_SELECTOR=bedrock
+BEDROCK_MODEL_ID=anthropic.claude-3-haiku-20240307-v1:0
+AWS_REGION=us-east-1
+pip install -e ".[bedrock]"
+```
+
+Audit event `action.selected` records selector type, action, confidence, reason, memory IDs used, and whether fallback was used.
 
 ## M2: Semantic memory retrieval
 
@@ -168,7 +198,7 @@ docker compose -f infra/docker-compose.yml up -d
 |-------------------|------------------|
 | **CockroachDB integration** | Lease fencing, vector memory retrieval, checkpoints, action ledger, audit events |
 | **Vector search** | `VECTOR(64)` embeddings with cosine ranking; MemoryGate validates retrieved memories |
-| **AWS integration** | Architecture planned; Bedrock for action selection, Lambda workers, API Gateway intake |
+| **AWS integration** | Bedrock action selection with guardrails; Lambda workers and API Gateway planned |
 | **Agent safety** | MemoryGate rejects expired/failed memories regardless of similarity score |
 | **Crash recovery** | Worker B resumes from checkpoint after Worker A crash |
 | **Exactly-once actions** | Idempotent `action_intents` + single `action_results` commit |

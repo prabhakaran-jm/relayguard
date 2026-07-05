@@ -106,11 +106,8 @@ def test_semantic_retrieval_returns_ranked_memories(settings: Settings, db_avail
 
 @pytest.mark.integration
 def test_worker_audit_contains_memory_events(settings: Settings, db_available: None) -> None:
-    settings_a = Settings(
-        database_url=settings.database_url,
-        lease_ttl_seconds=2,
-        worker_id="worker-a",
-        fail_after="ACTION_RESERVED",
+    settings_a = settings.override(
+        lease_ttl_seconds=2, worker_id="worker-a", fail_after="ACTION_RESERVED"
     )
 
     conn = _connect(settings)
@@ -142,11 +139,8 @@ def test_worker_demo_still_commits_only_one_action(settings: Settings, db_availa
     finally:
         conn.close()
 
-    settings_a = Settings(
-        database_url=settings.database_url,
-        lease_ttl_seconds=2,
-        worker_id="worker-a",
-        fail_after="ACTION_RESERVED",
+    settings_a = settings.override(
+        lease_ttl_seconds=2, worker_id="worker-a", fail_after="ACTION_RESERVED"
     )
     conn = _connect(settings)
     try:
@@ -156,12 +150,7 @@ def test_worker_demo_still_commits_only_one_action(settings: Settings, db_availa
 
     time.sleep(3)
 
-    settings_b = Settings(
-        database_url=settings.database_url,
-        lease_ttl_seconds=5,
-        worker_id="worker-b",
-        fail_after=None,
-    )
+    settings_b = settings.override(lease_ttl_seconds=5, worker_id="worker-b", fail_after=None)
     conn = _connect(settings)
     try:
         code = run_worker(RelayStore(conn, settings_b), incident_id, settings_b)
