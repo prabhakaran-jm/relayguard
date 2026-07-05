@@ -98,3 +98,4 @@ class AuditEvent(BaseModel):
     lease_owner: str | None = None
     lease_epoch: int | None = None
     details_json: dict[str, Any] = Field(default_factory=dict)
+    created_at: Any | None = None

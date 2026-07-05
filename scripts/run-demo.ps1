@@ -67,4 +67,8 @@ Write-Host "`n==> Step 11: Verify demo invariants"
 & $Python -m apps.cli.verify_demo $IncidentId
 if ($LASTEXITCODE -ne 0) { throw "Verification failed" }
 
+Write-Host "`n==> Step 12: Audit incident report"
+& $Python -m apps.cli.audit_incident --incident-id $IncidentId
+if ($LASTEXITCODE -ne 0) { throw "Audit report failed" }
+
 Write-Host "`nDemo complete."

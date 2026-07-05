@@ -52,3 +52,7 @@ python -m apps.cli.stale_commit "$INCIDENT_ID" "$INTENT_ID" --worker-id worker-a
 echo ""
 echo "==> Step 11: Verify demo invariants"
 bash scripts/verify-demo.sh "$INCIDENT_ID"
+
+echo ""
+echo "==> Step 12: Audit incident report"
+python -m apps.cli.audit_incident --incident-id "$INCIDENT_ID"

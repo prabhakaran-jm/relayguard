@@ -482,12 +482,32 @@ class RelayStore:
     def list_audit_events(self, incident_id: UUID) -> list[AuditEvent]:
         rows = self._fetchall(
             """
-            SELECT event_id, incident_id, event_type, lease_owner, lease_epoch, details_json
+            SELECT event_id, incident_id, event_type, lease_owner, lease_epoch, details_json, created_at
             FROM audit_events WHERE incident_id = %s ORDER BY created_at
             """,
             (incident_id,),
         )
         return [AuditEvent.model_validate(r) for r in rows]
+
+    def list_action_intents(self, incident_id: UUID) -> list[ActionIntent]:
+        rows = self._fetchall(
+            """
+            SELECT intent_id, incident_id, action_type, idempotency_key, status, lease_owner, lease_epoch
+            FROM action_intents WHERE incident_id = %s ORDER BY created_at
+            """,
+            (incident_id,),
+        )
+        return [ActionIntent.model_validate(r) for r in rows]
+
+    def list_action_results(self, incident_id: UUID) -> list[ActionResult]:
+        rows = self._fetchall(
+            """
+            SELECT result_id, intent_id, incident_id, action_type, status, lease_owner, lease_epoch
+            FROM action_results WHERE incident_id = %s ORDER BY committed_at
+            """,
+            (incident_id,),
+        )
+        return [ActionResult.model_validate(r) for r in rows]
 
     def _embedding_storage(self) -> str:
         row = self._fetchone(

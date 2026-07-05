@@ -83,6 +83,23 @@ pip install -e ".[bedrock]"
 
 Audit event `action.selected` records selector type, action, confidence, reason, memory IDs used, and whether fallback was used.
 
+## M4: Audit reader and MCP auditor
+
+RelayGuard builds an evidence-backed **AuditReport** from CockroachDB — no UI required.
+
+```bash
+python -m apps.cli.audit_incident --incident-id <uuid>
+```
+
+The report answers:
+- Why was an action selected?
+- Which memories were blocked and why?
+- Which worker committed after crash recovery?
+- Why was a stale commit rejected?
+- Did invariants pass (`PASS` / `FAIL`)?
+
+See `docs/mcp-auditor.md` for how **Managed MCP** will expose the same read-only audit path. Application writes still go through RelayGuard workers, not MCP.
+
 ## M2: Semantic memory retrieval
 
 RelayGuard separates **retrieval** from **validation**:
