@@ -68,7 +68,7 @@ try {
 }
 
 $env:ACTION_SELECTOR = "bedrock"
-$env:RELAYGUARD_DEMO_TITLE = "Bedrock selector demo incident"
+$env:RELAYGUARD_DEMO_TITLE = "API latency spike in us-east-1, primary health checks failing"
 
 & (Join-Path $Root "scripts\run-demo.ps1") *>&1 | ForEach-Object {
     Write-Host $_

@@ -149,7 +149,7 @@ _BUNDLED_SSL_ROOT_CERTS = (
 
 def _bundled_ssl_root_cert() -> str | None:
     override = os.environ.get("RELAYGUARD_SSL_ROOT_CERT")
-    if override and Path(override).is_file():
+    if override:
         return override
     if _REPO_SSL_CERT.is_file():
         return str(_REPO_SSL_CERT)

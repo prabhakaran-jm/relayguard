@@ -57,7 +57,7 @@ else
 fi
 
 export ACTION_SELECTOR=bedrock
-export RELAYGUARD_DEMO_TITLE="Bedrock selector demo incident"
+export RELAYGUARD_DEMO_TITLE="API latency spike in us-east-1, primary health checks failing"
 
 set +e
 bash "$ROOT/scripts/run-demo.sh" 2>&1 | tee -a "$LOG_FILE"
