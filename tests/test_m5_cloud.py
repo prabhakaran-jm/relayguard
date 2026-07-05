@@ -37,11 +37,22 @@ def test_cloud_verify_full_uses_system_trust_store(monkeypatch: pytest.MonkeyPat
     from relayguard.config import ensure_database_url_runtime_compat
 
     monkeypatch.delenv("RELAYGUARD_SSL_ROOT_CERT", raising=False)
-    monkeypatch.setattr("relayguard.config.os.path.isfile", lambda _path: False)
+    monkeypatch.setattr("relayguard.config._bundled_ssl_root_cert", lambda: None)
     url = ensure_database_url_runtime_compat(
         "postgresql://user:pass@host.cockroachlabs.cloud:26257/relayguard?sslmode=verify-full"
     )
     assert "sslrootcert=system" in url
+
+
+def test_cloud_verify_full_uses_repo_bundled_cert() -> None:
+    from relayguard.config import _REPO_SSL_CERT, ensure_database_url_runtime_compat
+
+    if not _REPO_SSL_CERT.is_file():
+        pytest.skip("repo bundled root.crt not present")
+    url = ensure_database_url_runtime_compat(
+        "postgresql://user:pass@host.cockroachlabs.cloud:26257/relayguard?sslmode=verify-full"
+    )
+    assert f"sslrootcert={_REPO_SSL_CERT}" in url
 
 
 def test_cloud_verify_full_uses_bundled_cert_when_present(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

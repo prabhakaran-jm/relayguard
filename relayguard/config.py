@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Literal
 from urllib.parse import urlparse
 
@@ -137,6 +138,9 @@ def resolve_database_url(
     return database_url_local
 
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_REPO_SSL_CERT = _REPO_ROOT / "infra" / "aws" / "lambda_worker" / "certs" / "root.crt"
+
 _BUNDLED_SSL_ROOT_CERTS = (
     "/var/task/certs/root.crt",
     "/app/certs/root.crt",
@@ -145,8 +149,15 @@ _BUNDLED_SSL_ROOT_CERTS = (
 
 def _bundled_ssl_root_cert() -> str | None:
     override = os.environ.get("RELAYGUARD_SSL_ROOT_CERT")
-    if override:
+    if override and Path(override).is_file():
         return override
+    if _REPO_SSL_CERT.is_file():
+        return str(_REPO_SSL_CERT)
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        win_cert = Path(appdata) / "postgresql" / "root.crt"
+        if win_cert.is_file():
+            return str(win_cert)
     for path in _BUNDLED_SSL_ROOT_CERTS:
         if os.path.isfile(path):
             return path
