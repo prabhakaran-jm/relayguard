@@ -32,7 +32,7 @@ Do **not** grant `INSERT`, `UPDATE`, `DELETE`, or `ADMIN` to MCP users.
 | `memories` | Seeded runbooks and outcome memories (including embeddings) |
 | `audit_events` | Full evidence chain: retrieval, classification, selection, checkpoints, rejections |
 | `action_intents` | Idempotent remediation reservations |
-| `action_results` | Committed outcomes (exactly-once proof) |
+| `action_results` | Committed outcomes in RelayGuard's action ledger (one committed row per idempotency key in demo) |
 | `checkpoints` | Worker resume state after crashes |
 
 ## Sample SQL (from `db/queries/audit_incident.sql`)
@@ -135,15 +135,19 @@ Each tool maps to `db/queries/audit_incident.sql` and returns the same fields as
 
 Use this section during the hackathon recording. Managed MCP must use a **SELECT-only** SQL role — never worker write credentials.
 
-### Screenshots placeholder
+### Captured MCP proof ✅
 
-| Capture | File |
-|---------|------|
-| MCP auditor answering Q1 | `docs/evidence/mcp_q1_action_selection.png` |
-| MCP auditor answering Q3–Q4 | `docs/evidence/mcp_q3_worker_commit.png` |
-| Dashboard proof panel | `docs/evidence/m8_dashboard_proof.png` |
+| Capture | File | Status |
+|---------|------|--------|
+| Why was Worker A rejected? | [`docs/evidence/mcp_worker_rejection_question.png`](../evidence/mcp_worker_rejection_question.png) | ✅ captured |
+| MCP read-only answer | [`docs/evidence/mcp_worker_rejection_answer.png`](../evidence/mcp_worker_rejection_answer.png) | ✅ captured |
+| Dashboard proof panel | `docs/evidence/m8_dashboard_proof.png` | optional |
 
-Run `scripts/capture-evidence.ps1` first to refresh CLI evidence under `docs/evidence/`.
+**Demo:** Cursor used CockroachDB Managed MCP (`select_query`) read-only against `audit_events`, `action_intents`, `action_results`, and `incidents` for incident `c61104ce-9f84-4b51-b3f2-41c25907be5a`.
+
+**Expected finding:** `action.commit_rejected` for worker-a with `details_json.reason = already_committed` after worker-b committed at lease epoch 2.
+
+Run `scripts/capture-evidence.ps1` to refresh CLI evidence under `docs/evidence/`.
 
 ### Exact questions to ask
 
@@ -153,7 +157,7 @@ Run `scripts/capture-evidence.ps1` first to refresh CLI evidence under `docs/evi
 | 2 | **Which memories were rejected and why?** | Rows from `memory.classified` where `verdict=AVOID` — labels such as `expired_runbook`, `failed_restart`, `unrelated_finance` with policy reasons |
 | 3 | **Which worker committed the action?** | `action.committed` / `action_results`: `lease_owner=worker-b`, `lease_epoch` higher than Worker A |
 | 4 | **Why did Worker A fail to commit?** | `action.commit_rejected` for `worker-a`: stale lease or `already_committed` |
-| 5 | **How many remediation actions were committed?** | Exactly **1** row in `action_results` with `status=committed` for the incident |
+| 5 | **How many remediation actions were committed?** | **1** row in `action_results` with `status=committed` for the incident (RelayGuard ledger scope) |
 
 ### Tables the auditor may read (read-only)
 

@@ -1,0 +1,71 @@
+%% RelayGuard system architecture — hackathon submission
+flowchart TB
+  subgraph clients["Judge & operator surfaces"]
+    DASH["Next.js dashboard<br/>(read-only)"]
+    CLI["CLI demo scripts<br/>run-demo · verify · audit"]
+    MCP["Managed MCP auditor<br/>(read-only SQL)"]
+    CCLOUD["ccloud CLI<br/>(cluster evidence)"]
+  end
+
+  subgraph aws["AWS"]
+    LAM_A["Lambda worker-a"]
+    LAM_B["Lambda worker-b"]
+    BED["Amazon Bedrock<br/>guarded selector"]
+    SM["Secrets Manager<br/>DATABASE_URL"]
+    CW["CloudWatch Logs"]
+  end
+
+  subgraph crdb["CockroachDB Cloud — system of record"]
+    INC[("incidents")]
+    MEM[("memories<br/>VECTOR retrieval")]
+    CKP[("checkpoints")]
+    INT[("action_intents")]
+    RES[("action_results")]
+    AUD[("audit_events")]
+  end
+
+  %% Incident flow
+  CLI -->|"1 create incident"| INC
+  CLI -->|"seed memories"| MEM
+
+  LAM_A -->|"2 retrieve candidates"| MEM
+  MEM -->|"VECTOR similarity"| LAM_A
+  LAM_A -->|"3 MemoryGate USE/INSPECT/AVOID"| LAM_A
+  LAM_A -->|"4 select allowlisted action"| BED
+  BED --> LAM_A
+  LAM_A -->|"5 reserve action"| INT
+  LAM_A -->|"write audit"| AUD
+  LAM_A -->|"6 crash / stop"| LAM_A
+
+  LAM_B -->|"7 resume checkpoint"| CKP
+  LAM_B -->|"claim lease + epoch"| INC
+  LAM_B -->|"8 commit once"| RES
+  LAM_B -->|"audit"| AUD
+
+  LAM_A -->|"9 stale commit rejected"| RES
+  LAM_A -.->|"fencing epoch mismatch"| INC
+
+  SM --> LAM_A
+  SM --> LAM_B
+  LAM_A --> CW
+  LAM_B --> CW
+
+  %% Read paths
+  DASH -->|"Python CLI JSON bridge"| AUD
+  DASH --> INT
+  DASH --> RES
+  MCP -->|"SELECT only"| AUD
+  MCP --> INT
+  MCP --> RES
+  MCP --> MEM
+  MCP --> INC
+  CCLOUD -.->|"inspection evidence"| crdb
+
+  CLI -->|"verify · audit"| AUD
+
+  classDef store fill:#111b2e,stroke:#22d3ee,color:#e8f4ff
+  classDef aws fill:#1a2744,stroke:#fb923c,color:#e8f4ff
+  classDef read fill:#0b1220,stroke:#2dd4bf,color:#e8f4ff
+  class INC,MEM,CKP,INT,RES,AUD store
+  class LAM_A,LAM_B,BED,SM,CW aws
+  class DASH,CLI,MCP,CCLOUD read

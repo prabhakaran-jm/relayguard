@@ -232,3 +232,5 @@ infra/aws/terraform/*.tfstate.*
 apps/web/node_modules/
 apps/web/.next/
 !apps/web/lib/
+
+
