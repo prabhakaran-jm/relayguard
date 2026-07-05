@@ -89,7 +89,7 @@ class Settings:
             action_selector=os.environ.get("ACTION_SELECTOR", "mock").lower(),
             bedrock_model_id=os.environ.get(
                 "BEDROCK_MODEL_ID",
-                "anthropic.claude-3-haiku-20240307-v1:0",
+                "us.anthropic.claude-haiku-4-5-20251001-v1:0",
             ),
             aws_region=aws_region,
             incident_severity=os.environ.get("INCIDENT_SEVERITY", "high"),

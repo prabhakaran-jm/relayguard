@@ -232,7 +232,7 @@ Read-only judge UI — proof cards, MemoryGate verdicts, story-ordered timeline,
 
 | **AWS** | CloudWatch | Worker logs — [`docs/evidence/m6_cloudwatch_logs.png`](docs/evidence/m6_cloudwatch_logs.png) |
 
-| **AWS** | Bedrock | Guarded selector — `ACTION_SELECTOR=bedrock`, [`scripts/run-bedrock-demo.ps1`](scripts/run-bedrock-demo.ps1) · Titan v2 embeddings — `EMBEDDING_PROVIDER=bedrock` |
+| **AWS** | Bedrock | Guarded selector — [`m8_dashboard_bedrock_proof.png`](docs/evidence/m8_dashboard_bedrock_proof.png) · [`m8_dashboard_bedrock_timeline.png`](docs/evidence/m8_dashboard_bedrock_timeline.png) · [`scripts/run-bedrock-demo.ps1`](scripts/run-bedrock-demo.ps1) |
 
 
 
@@ -293,7 +293,7 @@ Captured proof for judges: [`docs/evidence/README.md`](docs/evidence/README.md)
 |-------|------|
 
 | Evidence index | [`docs/evidence/README.md`](docs/evidence/README.md) |
-
+| Bedrock dashboard | [`m8_dashboard_bedrock_proof.png`](docs/evidence/m8_dashboard_bedrock_proof.png) · [`m8_dashboard_bedrock_timeline.png`](docs/evidence/m8_dashboard_bedrock_timeline.png) |
 | MCP proof | [`mcp_worker_rejection_question.png`](docs/evidence/mcp_worker_rejection_question.png) · [`mcp_worker_rejection_answer.png`](docs/evidence/mcp_worker_rejection_answer.png) |
 | Architecture | [`architecture-diagram.png`](docs/architecture-diagram.png) |
 

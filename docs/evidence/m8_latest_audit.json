@@ -1,52 +1,52 @@
 {
-  "incident_id": "c61104ce-9f84-4b51-b3f2-41c25907be5a",
-  "incident_title": "Lambda handoff demo",
-  "selected_action": "ROUTE_TO_STANDBY",
-  "selector_type": "mock",
-  "selection_reason": "Mock selector: approved runbook recommends routing to standby.",
-  "selection_confidence": 1.0,
+  "incident_id": "45148da3-04ec-4793-8645-14cbc16d902f",
+  "incident_title": "Bedrock embeddings + selector demo",
+  "selected_action": "ESCALATE_TO_HUMAN",
+  "selector_type": "bedrock",
+  "selection_reason": "High severity incident requires human review. Historical precedent (read replica promotion) exists but is flagged as requiring human review before acting. Backup verification runbook should be consulted by on-call engineer.",
+  "selection_confidence": 0.85,
   "fallback_used": false,
   "used_memory_ids": [
-    "80a79929-c58b-4ae7-ade7-687f032fc9c6"
+    "runbook_backup_verify"
   ],
   "inspected_memory_ids": [
-    "5309dc74-92be-42c5-b0a9-e764744cfaf9"
+    "historical_incident_db_outage"
   ],
   "memory_verdicts": [
     {
-      "memory_id": "5309dc74-92be-42c5-b0a9-e764744cfaf9",
-      "label": "historical_incident",
-      "verdict": "INSPECT",
-      "reason": "related historical incident requires human review",
-      "similarity_score": 0.8908
-    },
-    {
-      "memory_id": "9d4043fb-56ed-42eb-918c-447fd30dfbb8",
-      "label": "expired_runbook",
-      "verdict": "AVOID",
-      "reason": "runbook is expired or deprecated",
-      "similarity_score": 0.8781
-    },
-    {
-      "memory_id": "3fb6e687-50a9-4895-8f95-547c2c611fa9",
-      "label": "failed_restart",
-      "verdict": "AVOID",
-      "reason": "prior action failed and must not be repeated",
-      "similarity_score": 0.8544
-    },
-    {
-      "memory_id": "80a79929-c58b-4ae7-ade7-687f032fc9c6",
-      "label": "current_runbook",
+      "memory_id": "eb9dfcd5-f8bc-46fd-b46b-b9a075dd214c",
+      "label": "runbook_backup_verify",
       "verdict": "USE",
       "reason": "active runbook approved for current incident response",
-      "similarity_score": 0.8414
+      "similarity_score": 0.3094
     },
     {
-      "memory_id": "8832b403-6f64-44c9-b337-ea2225e500fc",
-      "label": "unrelated_finance",
+      "memory_id": "c18f5090-d4c7-4b2b-b9d9-002a7cc7dbde",
+      "label": "noise_recruiting_pipeline",
       "verdict": "AVOID",
       "reason": "memory is unrelated to the active incident",
-      "similarity_score": 0.7469
+      "similarity_score": 0.2886
+    },
+    {
+      "memory_id": "93342255-1884-4096-824e-1f4452f9f895",
+      "label": "noise_marketing_newsletter",
+      "verdict": "AVOID",
+      "reason": "memory is unrelated to the active incident",
+      "similarity_score": 0.2786
+    },
+    {
+      "memory_id": "b96ac561-750e-4475-9f30-a75131f9d66a",
+      "label": "noise_sales_deck",
+      "verdict": "AVOID",
+      "reason": "memory is unrelated to the active incident",
+      "similarity_score": 0.2707
+    },
+    {
+      "memory_id": "af4b0d9d-69aa-43b4-afad-2eed96fa0bfc",
+      "label": "historical_incident_db_outage",
+      "verdict": "INSPECT",
+      "reason": "related historical incident requires human review",
+      "similarity_score": 0.2684
     }
   ],
   "execution_timeline": [
@@ -54,128 +54,128 @@
       "event_type": "incident.created",
       "worker": null,
       "lease_epoch": null,
-      "summary": "Lambda handoff demo",
-      "created_at": "2026-07-05 17:47:22.868425+00:00"
+      "summary": "Bedrock embeddings + selector demo",
+      "created_at": "2026-07-05 21:15:50.142343+00:00"
     },
     {
       "event_type": "memories.seeded",
       "worker": null,
       "lease_epoch": null,
-      "summary": "seeded 5 memories",
-      "created_at": "2026-07-05 17:47:22.868425+00:00"
+      "summary": "seeded 63 memories",
+      "created_at": "2026-07-05 21:15:50.142343+00:00"
     },
     {
       "event_type": "lease.claimed",
       "worker": "worker-a",
       "lease_epoch": 1,
       "summary": "incident lease claimed",
-      "created_at": "2026-07-05 17:47:26.250333+00:00"
+      "created_at": "2026-07-05 21:16:44.623919+00:00"
     },
     {
       "event_type": "memory.retrieved",
       "worker": "worker-a",
       "lease_epoch": 1,
       "summary": "retrieved 5 memories",
-      "created_at": "2026-07-05 17:47:26.250333+00:00"
+      "created_at": "2026-07-05 21:16:45.144599+00:00"
     },
     {
       "event_type": "memory.classified",
       "worker": "worker-a",
       "lease_epoch": 1,
-      "summary": "historical_incident -> INSPECT",
-      "created_at": "2026-07-05 17:47:26.250333+00:00"
+      "summary": "runbook_backup_verify -> USE",
+      "created_at": "2026-07-05 21:16:45.144599+00:00"
     },
     {
       "event_type": "memory.classified",
       "worker": "worker-a",
       "lease_epoch": 1,
-      "summary": "expired_runbook -> AVOID",
-      "created_at": "2026-07-05 17:47:26.250333+00:00"
+      "summary": "noise_recruiting_pipeline -> AVOID",
+      "created_at": "2026-07-05 21:16:45.144599+00:00"
     },
     {
       "event_type": "memory.classified",
       "worker": "worker-a",
       "lease_epoch": 1,
-      "summary": "failed_restart -> AVOID",
-      "created_at": "2026-07-05 17:47:26.250333+00:00"
+      "summary": "noise_marketing_newsletter -> AVOID",
+      "created_at": "2026-07-05 21:16:45.144599+00:00"
     },
     {
       "event_type": "memory.classified",
       "worker": "worker-a",
       "lease_epoch": 1,
-      "summary": "current_runbook -> USE",
-      "created_at": "2026-07-05 17:47:26.250333+00:00"
+      "summary": "noise_sales_deck -> AVOID",
+      "created_at": "2026-07-05 21:16:45.144599+00:00"
     },
     {
       "event_type": "memory.classified",
       "worker": "worker-a",
       "lease_epoch": 1,
-      "summary": "unrelated_finance -> AVOID",
-      "created_at": "2026-07-05 17:47:26.250333+00:00"
+      "summary": "historical_incident_db_outage -> INSPECT",
+      "created_at": "2026-07-05 21:16:45.144599+00:00"
     },
     {
       "event_type": "checkpoint.memories_classified",
       "worker": "worker-a",
       "lease_epoch": 1,
       "summary": "checkpoint checkpoint.memories_classified",
-      "created_at": "2026-07-05 17:47:26.250333+00:00"
+      "created_at": "2026-07-05 21:16:45.144599+00:00"
     },
     {
       "event_type": "action.selected",
       "worker": "worker-a",
       "lease_epoch": 1,
-      "summary": "ROUTE_TO_STANDBY via mock",
-      "created_at": "2026-07-05 17:47:26.250333+00:00"
+      "summary": "ESCALATE_TO_HUMAN via bedrock",
+      "created_at": "2026-07-05 21:16:48.074268+00:00"
     },
     {
       "event_type": "action_intent.reserved",
       "worker": "worker-a",
       "lease_epoch": 1,
-      "summary": "reserved ROUTE_TO_STANDBY",
-      "created_at": "2026-07-05 17:47:26.250333+00:00"
+      "summary": "reserved ESCALATE_TO_HUMAN",
+      "created_at": "2026-07-05 21:16:48.074268+00:00"
     },
     {
       "event_type": "checkpoint.action_reserved",
       "worker": "worker-a",
       "lease_epoch": 1,
       "summary": "checkpoint checkpoint.action_reserved",
-      "created_at": "2026-07-05 17:47:26.250333+00:00"
+      "created_at": "2026-07-05 21:16:51.097293+00:00"
     },
     {
       "event_type": "lease.claimed",
       "worker": "worker-b",
       "lease_epoch": 2,
       "summary": "incident lease claimed",
-      "created_at": "2026-07-05 17:47:34.921855+00:00"
+      "created_at": "2026-07-05 21:16:58.935996+00:00"
     },
     {
       "event_type": "action.committed",
       "worker": "worker-b",
       "lease_epoch": 2,
-      "summary": "committed ROUTE_TO_STANDBY",
-      "created_at": "2026-07-05 17:47:34.921855+00:00"
+      "summary": "committed ESCALATE_TO_HUMAN",
+      "created_at": "2026-07-05 21:16:59.403449+00:00"
     },
     {
       "event_type": "checkpoint.completed",
       "worker": "worker-b",
       "lease_epoch": 2,
       "summary": "checkpoint checkpoint.completed",
-      "created_at": "2026-07-05 17:47:34.921855+00:00"
+      "created_at": "2026-07-05 21:17:00.237181+00:00"
     },
     {
       "event_type": "action.commit_rejected",
       "worker": "worker-a",
       "lease_epoch": 1,
       "summary": "rejected stale commit (already_committed)",
-      "created_at": "2026-07-05 17:47:37.386747+00:00"
+      "created_at": "2026-07-05 21:17:02.074228+00:00"
     }
   ],
   "action_ledger": [
     {
-      "action_type": "ROUTE_TO_STANDBY",
-      "idempotency_key": "c61104ce-9f84-4b51-b3f2-41c25907be5a:ROUTE_TO_STANDBY:v1",
+      "action_type": "ESCALATE_TO_HUMAN",
+      "idempotency_key": "45148da3-04ec-4793-8645-14cbc16d902f:ESCALATE_TO_HUMAN:v1",
       "status": "committed",
-      "result_id": "e397e61d-8538-42c9-b544-49ef98832010"
+      "result_id": "54e4eb2a-b7ca-4e02-9de5-5d7888e16dc3"
     }
   ],
   "committed_action_count": 1,

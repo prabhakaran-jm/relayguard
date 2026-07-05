@@ -19,6 +19,7 @@ def test_ensure_evidence_dir_creates_folder(tmp_path: Path) -> None:
 def test_dashboard_instructions_include_urls() -> None:
     text = dashboard_instructions("abc-123")
     assert "http://localhost:3000" in text
+    assert "relayguard-production.up.railway.app" in text
     assert "abc-123" in text
     assert "DATABASE_URL" in text
 

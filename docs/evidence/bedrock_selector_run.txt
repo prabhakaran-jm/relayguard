@@ -1,0 +1,5 @@
+﻿
+RelayGuard Bedrock selector demo
+================================
+Started: 2026-07-05T21:49:43.4340785+01:00
+

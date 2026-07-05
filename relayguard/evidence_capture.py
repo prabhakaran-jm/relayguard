@@ -59,17 +59,28 @@ Fix auth or cluster config, then re-run scripts/capture-evidence.ps1
 
 
 def dashboard_instructions(incident_id: str | None = None) -> str:
+    railway_base = "https://relayguard-production.up.railway.app"
     lines = [
         "RelayGuard judge dashboard",
         "==========================",
         "",
-        "1. Start the read-only dashboard:",
-        "   .\\scripts\\run-web.ps1",
-        "   ./scripts/run-web.sh",
-        "",
-        "2. Open in browser:",
-        "   http://localhost:3000",
+        "Live (Railway):",
+        f"   {railway_base}",
     ]
+    if incident_id:
+        lines.append(f"   {railway_base}/incident/{incident_id}")
+    lines.extend(
+        [
+            "",
+            "Local:",
+            "1. Start the read-only dashboard:",
+            "   .\\scripts\\run-web.ps1",
+            "   ./scripts/run-web.sh",
+            "",
+            "2. Open in browser:",
+            "   http://localhost:3000",
+        ]
+    )
     if incident_id:
         lines.extend(
             [

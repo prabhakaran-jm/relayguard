@@ -1,6 +1,55 @@
 {
   "incidents": [
     {
+      "incident_id": "45148da3-04ec-4793-8645-14cbc16d902f",
+      "title": "Bedrock embeddings + selector demo",
+      "status": "resolved",
+      "created_at": "2026-07-05 21:15:50.142343+00:00",
+      "invariant_status": "PASS"
+    },
+    {
+      "incident_id": "f415dc60-f25d-4419-842b-d9118f28bb73",
+      "title": "Bedrock embeddings + selector demo",
+      "status": "claimed",
+      "created_at": "2026-07-05 21:09:04.680047+00:00",
+      "invariant_status": "FAIL"
+    },
+    {
+      "incident_id": "efc25277-b42c-4bd0-9af2-16ecfd1ed9d9",
+      "title": "Bedrock embeddings + selector demo",
+      "status": "claimed",
+      "created_at": "2026-07-05 21:05:12.004380+00:00",
+      "invariant_status": "FAIL"
+    },
+    {
+      "incident_id": "222a3bd4-ca95-4800-a20a-58e3b2c63220",
+      "title": "Bedrock embeddings + selector demo",
+      "status": "claimed",
+      "created_at": "2026-07-05 21:01:22.256917+00:00",
+      "invariant_status": "FAIL"
+    },
+    {
+      "incident_id": "91621204-b95e-4b17-875c-78344d396484",
+      "title": "Bedrock embeddings + selector demo",
+      "status": "claimed",
+      "created_at": "2026-07-05 20:57:50.575106+00:00",
+      "invariant_status": "FAIL"
+    },
+    {
+      "incident_id": "c65988e5-63fe-45b0-a209-4b42d25555eb",
+      "title": "Hackathon demo incident",
+      "status": "resolved",
+      "created_at": "2026-07-05 20:41:52.910223+00:00",
+      "invariant_status": "PASS"
+    },
+    {
+      "incident_id": "b0a74d69-e9e8-4379-b513-199620138ea9",
+      "title": "Hackathon demo incident",
+      "status": "resolved",
+      "created_at": "2026-07-05 20:40:28.934074+00:00",
+      "invariant_status": "PASS"
+    },
+    {
       "incident_id": "c61104ce-9f84-4b51-b3f2-41c25907be5a",
       "title": "Lambda handoff demo",
       "status": "resolved",
