@@ -1,6 +1,19 @@
 # RelayGuard
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white)](https://relayguard-production.up.railway.app)
+[![Tests](https://img.shields.io/badge/tests-79%2F79_passing-22c55e?style=for-the-badge&logo=pytest&logoColor=white)](#testing)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![CockroachDB](https://img.shields.io/badge/CockroachDB-Cloud_%2B_VECTOR-6933FF?style=flat-square)](https://www.cockroachlabs.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=next.js&logoColor=white)](apps/web/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=flat-square&logo=typescript&logoColor=white)](apps/web/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?style=flat-square&logo=tailwindcss&logoColor=white)](apps/web/)
+[![AWS Lambda](https://img.shields.io/badge/AWS-Lambda-FF9900?style=flat-square&logo=awslambda&logoColor=white)](docs/aws-lambda.md)
+[![Amazon Bedrock](https://img.shields.io/badge/Amazon-Bedrock-232F3E?style=flat-square&logo=amazonaws&logoColor=white)](scripts/run-bedrock-demo.ps1)
+[![Terraform](https://img.shields.io/badge/Terraform-IaC-844FBA?style=flat-square&logo=terraform&logoColor=white)](infra/aws/terraform/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)](infra/docker-compose.yml)
+[![MCP](https://img.shields.io/badge/Managed_MCP-read--only_audit-00D4AA?style=flat-square)](docs/mcp-auditor.md)
 
 **Crash-safe memory for incident-response agents** — resume after failures, reject unsafe precedent, and keep one committed remediation action in RelayGuard's CockroachDB action ledger.
 
@@ -268,7 +281,7 @@ Full diagram: [`docs/architecture-diagram.md`](docs/architecture-diagram.md) · 
 
 
 
-**78/78** tests — integration tests use Docker CockroachDB locally.
+**79/79** tests — integration tests use Docker CockroachDB locally.
 
 
 
