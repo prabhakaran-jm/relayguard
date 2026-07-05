@@ -7,6 +7,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from relayguard.audit_timeline import sort_audit_events_story_order
 from relayguard.models import ActionIntent, ActionResult, AuditEvent, Incident
 from relayguard.store import RelayStore
 
@@ -27,6 +28,13 @@ class TimelineEntry(BaseModel):
     created_at: str | None = None
 
 
+class ActionLedgerEntry(BaseModel):
+    action_type: str
+    idempotency_key: str
+    status: str
+    result_id: str | None = None
+
+
 class AuditReport(BaseModel):
     incident_id: UUID
     incident_title: str
@@ -39,8 +47,11 @@ class AuditReport(BaseModel):
     inspected_memory_ids: list[str] = Field(default_factory=list)
     memory_verdicts: list[MemoryVerdict] = Field(default_factory=list)
     execution_timeline: list[TimelineEntry] = Field(default_factory=list)
+    action_ledger: list[ActionLedgerEntry] = Field(default_factory=list)
     committed_action_count: int = 0
     stale_commit_rejection_count: int = 0
+    retrieved_memory_count: int = 0
+    blocked_memory_count: int = 0
     invariant_status: Literal["PASS", "FAIL"] = "FAIL"
     invariant_errors: list[str] = Field(default_factory=list)
 
@@ -59,15 +70,18 @@ class AuditReader:
                 invariant_errors=[f"incident {incident_id} not found"],
             )
 
-        events = self.store.list_audit_events(incident_id)
+        events = sort_audit_events_story_order(self.store.list_audit_events(incident_id))
         intents = self.store.list_action_intents(incident_id)
         results = self.store.list_action_results(incident_id)
 
         selection = _latest_event(events, "action.selected")
         memory_verdicts = _memory_verdicts(events)
         timeline = _build_timeline(events)
+        action_ledger = _build_action_ledger(intents, results)
         committed_count = len([result for result in results if result.status == "committed"])
         stale_rejects = [event for event in events if event.event_type == "action.commit_rejected"]
+        retrieved_memory_count = _retrieved_memory_count(events)
+        blocked_memory_count = sum(1 for verdict in memory_verdicts if verdict.verdict == "AVOID")
 
         report = AuditReport(
             incident_id=incident_id,
@@ -81,8 +95,11 @@ class AuditReader:
             inspected_memory_ids=_detail(selection, "inspected_memory_ids", []) or [],
             memory_verdicts=memory_verdicts,
             execution_timeline=timeline,
+            action_ledger=action_ledger,
             committed_action_count=committed_count,
             stale_commit_rejection_count=len(stale_rejects),
+            retrieved_memory_count=retrieved_memory_count,
+            blocked_memory_count=blocked_memory_count,
         )
         report.invariant_errors = _evaluate_invariants(report, events, intents, results)
         report.invariant_status = "PASS" if not report.invariant_errors else "FAIL"
@@ -123,6 +140,21 @@ def format_audit_report(report: AuditReport) -> str:
             "-----------------",
             f"Committed actions:         {report.committed_action_count}",
             f"Stale commit rejections:   {report.stale_commit_rejection_count}",
+            f"Retrieved memories:        {report.retrieved_memory_count}",
+            f"Blocked memories (AVOID):  {report.blocked_memory_count}",
+            "",
+            "Action ledger",
+            "-------------",
+        ]
+    )
+    for entry in report.action_ledger:
+        result = entry.result_id or "-"
+        lines.append(
+            f"  {entry.action_type:20s} {entry.status:10s} key={entry.idempotency_key} result={result}"
+        )
+
+    lines.extend(
+        [
             "",
             "Timeline",
             "--------",
@@ -199,6 +231,33 @@ def _build_timeline(events: list[AuditEvent]) -> list[TimelineEntry]:
             )
         )
     return timeline
+
+
+def _build_action_ledger(
+    intents: list[ActionIntent],
+    results: list[ActionResult],
+) -> list[ActionLedgerEntry]:
+    results_by_intent = {str(result.intent_id): result for result in results}
+    ledger: list[ActionLedgerEntry] = []
+    for intent in intents:
+        result = results_by_intent.get(str(intent.intent_id))
+        ledger.append(
+            ActionLedgerEntry(
+                action_type=intent.action_type.value,
+                idempotency_key=intent.idempotency_key,
+                status=intent.status.value,
+                result_id=str(result.result_id) if result else None,
+            )
+        )
+    return ledger
+
+
+def _retrieved_memory_count(events: list[AuditEvent]) -> int:
+    count = 0
+    for event in events:
+        if event.event_type == "memory.retrieved":
+            count = max(count, len(event.details_json.get("results", [])))
+    return count
 
 
 def _timeline_summary(event: AuditEvent) -> str:

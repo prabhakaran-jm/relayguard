@@ -4,6 +4,7 @@ import argparse
 import sys
 from uuid import UUID
 
+from relayguard.audit_timeline import sort_audit_events_story_order
 from relayguard.config import Settings
 from relayguard.db import get_connection
 from relayguard.store import RelayStore
@@ -21,7 +22,7 @@ def main() -> None:
     with get_connection(settings) as conn:
         store = RelayStore(conn, settings)
         committed = store.count_committed_actions(incident_id)
-        events = store.list_audit_events(incident_id)
+        events = sort_audit_events_story_order(store.list_audit_events(incident_id))
         event_types = [e.event_type for e in events]
 
         retrieved_count = sum(1 for e in events if e.event_type == "memory.retrieved")

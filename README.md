@@ -95,6 +95,29 @@ $env:RELAYGUARD_LAMBDA_FUNCTION_NAME = "relayguard-worker"
 
 Guide: `docs/aws-lambda.md`
 
+## M7: Judge dashboard and timeline polish
+
+M7 adds stable **story-ordered audit timelines** and a read-only **Next.js dashboard** for hackathon judges.
+
+| Component | Role |
+|-----------|------|
+| **audit_timeline.py** | Narrative sort for audit events (retrieved before classified, failover lease after reservation) |
+| **audit_incident --json** | JSON bridge for the dashboard |
+| **list_incidents --json** | Recent incidents for the selector |
+| **apps/web** | Next.js App Router dashboard (server-side Python bridge) |
+
+```powershell
+.\scripts\run-web.ps1
+# http://localhost:3000
+```
+
+```bash
+python -m apps.cli.audit_incident --incident-id <uuid> --json
+python -m apps.cli.list_incidents --json
+```
+
+Guides: `docs/frontend.md`, `apps/web/DESIGN.md`
+
 ## M3: Bedrock action selection with guardrails
 
 RelayGuard replaces hard-coded action picks with a pluggable **ActionSelector**:

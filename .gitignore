@@ -227,3 +227,8 @@ infra/aws/build/
 infra/aws/terraform/.terraform/
 infra/aws/terraform/*.tfstate
 infra/aws/terraform/*.tfstate.*
+
+# Next.js frontend
+apps/web/node_modules/
+apps/web/.next/
+!apps/web/lib/

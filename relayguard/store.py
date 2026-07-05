@@ -134,6 +134,17 @@ class RelayStore:
         )
         return Incident.model_validate(row) if row else None
 
+    def list_incidents(self, limit: int = 20) -> list[dict[str, Any]]:
+        return self._fetchall(
+            """
+            SELECT incident_id, title, status, created_at
+            FROM incidents
+            ORDER BY created_at DESC
+            LIMIT %s
+            """,
+            (limit,),
+        )
+
     def claim_incident(self, incident_id: UUID, worker_id: str) -> Incident:
         incident = self.get_incident(incident_id)
         if incident is None:
@@ -484,7 +495,7 @@ class RelayStore:
         rows = self._fetchall(
             """
             SELECT event_id, incident_id, event_type, lease_owner, lease_epoch, details_json, created_at
-            FROM audit_events WHERE incident_id = %s ORDER BY created_at
+            FROM audit_events WHERE incident_id = %s ORDER BY created_at, event_id
             """,
             (incident_id,),
         )
