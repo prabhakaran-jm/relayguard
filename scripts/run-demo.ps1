@@ -1,9 +1,30 @@
-# RelayGuard end-to-end local demo (Windows PowerShell)
+# RelayGuard end-to-end demo (Windows PowerShell)
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
-$env:DATABASE_URL = if ($env:DATABASE_URL) { $env:DATABASE_URL } else { "postgresql://root@localhost:26257/relayguard?sslmode=disable" }
+function Import-RelayGuardEnv {
+    param([string]$Path)
+    if (-not (Test-Path $Path)) { return }
+    Get-Content $Path | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -eq "" -or $line.StartsWith("#")) { return }
+        $eq = $line.IndexOf("=")
+        if ($eq -lt 1) { return }
+        $name = $line.Substring(0, $eq).Trim()
+        $value = $line.Substring($eq + 1).Trim()
+        if ([string]::IsNullOrEmpty([Environment]::GetEnvironmentVariable($name, "Process"))) {
+            [Environment]::SetEnvironmentVariable($name, $value, "Process")
+        }
+    }
+}
+
+Import-RelayGuardEnv (Join-Path $Root ".env")
+
+$DbTarget = if ($env:RELAYGUARD_DB_TARGET) { $env:RELAYGUARD_DB_TARGET.ToLower() } else { "local" }
+if ($DbTarget -ne "cloud") {
+    $env:DATABASE_URL = if ($env:DATABASE_URL) { $env:DATABASE_URL } else { "postgresql://root@localhost:26257/relayguard?sslmode=disable" }
+}
 $env:LEASE_TTL_SECONDS = if ($env:LEASE_TTL_SECONDS) { $env:LEASE_TTL_SECONDS } else { "3" }
 
 $Python = Join-Path $Root ".venv\Scripts\python.exe"
@@ -16,15 +37,20 @@ $IncidentFile = Join-Path $env:TEMP "relayguard_incident_id.txt"
 Write-Host "=============================================="
 Write-Host " RelayGuard - crash-safe incident handoff demo"
 Write-Host "=============================================="
+Write-Host "Database target: $DbTarget"
 
-Write-Host "`n==> Starting CockroachDB"
-docker compose -f infra/docker-compose.yml up -d
+if ($DbTarget -eq "cloud") {
+    Write-Host "`n==> Using CockroachDB Cloud (skipping local Docker)"
+} else {
+    Write-Host "`n==> Starting CockroachDB"
+    docker compose -f infra/docker-compose.yml up -d
 
-Write-Host "==> Waiting for CockroachDB"
-for ($i = 1; $i -le 30; $i++) {
-    docker compose -f infra/docker-compose.yml exec -T cockroach ./cockroach sql --insecure -e "SELECT 1" 2>$null | Out-Null
-    if ($LASTEXITCODE -eq 0) { break }
-    Start-Sleep -Seconds 1
+    Write-Host "==> Waiting for CockroachDB"
+    for ($i = 1; $i -le 30; $i++) {
+        docker compose -f infra/docker-compose.yml exec -T cockroach ./cockroach sql --insecure -e "SELECT 1" 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) { break }
+        Start-Sleep -Seconds 1
+    }
 }
 
 Write-Host "==> Applying schema and creating incident"

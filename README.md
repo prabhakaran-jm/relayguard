@@ -32,26 +32,45 @@ CockroachDB gives RelayGuard:
 - **Serializable coordination** — conditional updates (`UPDATE … WHERE lease_epoch = ?`) are atomic.
 - **Global footprint** — the same schema works locally and in multi-region production.
 
-### CockroachDB tools planned
+### CockroachDB tools (hackathon tool map)
 
-| Tool | Role in RelayGuard |
-|------|-------------------|
-| **Distributed Vector Indexing** | Semantic retrieval of runbooks and incident memories |
-| **Managed MCP** | Read-only audit and memory queries for operator agents |
-| **Agent Skills** | Packaged MemoryGate and action-policy skills for Cursor agents |
-| **ccloud CLI** | Provision and manage CockroachDB Cloud clusters for demos |
+| Tool | RelayGuard usage |
+|------|------------------|
+| **Distributed Vector Indexing** | Semantic retrieval of incidents, runbooks, and negative outcomes via `VECTOR(64)` on Cloud; `FLOAT8[]` + Python cosine fallback locally |
+| **Managed MCP Server** | Read-only auditor over `audit_events`, `action_intents`, `action_results` — see `docs/mcp-auditor.md` |
+| **ccloud CLI** | Cluster inspection scripts in `infra/ccloud/`; setup guide in `docs/ccloud.md` |
+| **Agent Skills** | Planned optional diagnostics packaging for MemoryGate policies |
 
-## AWS services planned
+### AWS services (hackathon tool map)
 
-| Service | Role in RelayGuard |
-|---------|-------------------|
-| **Amazon Bedrock** | Action selection from allowlisted remediations |
-| **AWS Lambda** | Regional incident workers |
-| **API Gateway** | Incident intake and webhook endpoints |
-| **CloudWatch** | Alerts, structured logs, demo observability |
-| **Secrets Manager** | Database and model credentials |
+| Service | RelayGuard usage |
+|---------|------------------|
+| **Amazon Bedrock** | Guarded action selection from allowlisted remediations (`ACTION_SELECTOR=bedrock`) |
+| **AWS Lambda** | Planned M6 regional worker runtime |
+| **CloudWatch** | Planned M6 demo alerts and structured logs |
+| **API Gateway** | Planned incident intake |
+| **Secrets Manager** | Planned credentials for Cloud DB and Bedrock |
 
-> Local demo and CI use `ACTION_SELECTOR=mock` (default). Enable Bedrock for production-style selection.
+## M5: CockroachDB Cloud and sponsor-tool proof
+
+Switch between local Docker and Cloud with environment variables only:
+
+```bash
+# Local (default)
+RELAYGUARD_DB_TARGET=local
+
+# CockroachDB Cloud
+RELAYGUARD_DB_TARGET=cloud
+DATABASE_URL_CLOUD=postgresql://...
+COCKROACH_VECTOR_MODE=auto
+```
+
+```bash
+python -m apps.cli.db_status          # target, vector mode, counts (no credentials)
+bash infra/ccloud/check-cluster.sh    # ccloud inspection (no secrets)
+```
+
+Guides: `docs/cockroach-cloud.md`, `docs/ccloud.md`
 
 ## M3: Bedrock action selection with guardrails
 
@@ -219,8 +238,10 @@ docker compose -f infra/docker-compose.yml up -d
 | **Agent safety** | MemoryGate rejects expired/failed memories regardless of similarity score |
 | **Crash recovery** | Worker B resumes from checkpoint after Worker A crash |
 | **Exactly-once actions** | Idempotent `action_intents` + single `action_results` commit |
-| **Auditability** | `audit_events` table records every state transition and rejection |
-| **Demo quality** | `run-demo.sh` + `verify-demo.sh` with clean CLI output |
+| **CockroachDB Cloud** | `RELAYGUARD_DB_TARGET=cloud`, `db_status`, `docs/cockroach-cloud.md` |
+| **ccloud CLI** | `infra/ccloud/check-cluster` scripts (inspection only, no secrets) |
+| **Managed MCP** | Read-only audit path in `docs/mcp-auditor.md` + `audit_incident` CLI |
+| **Demo quality** | `run-demo` → verify → audit report; `Invariants: PASS` |
 
 ## Project layout
 
@@ -229,7 +250,7 @@ apps/cli/          CLI entry points
 relayguard/        Models, store, embeddings, DB helpers
 workers/           MemoryGate, memory retriever, worker runtime
 db/                CockroachDB schema
-infra/             Docker Compose for local CockroachDB
+infra/             Docker Compose + ccloud helper scripts
 scripts/           Demo and verification scripts
 tests/             Pytest suite
 docs/              Architecture notes

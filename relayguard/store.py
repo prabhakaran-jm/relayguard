@@ -8,6 +8,7 @@ from uuid import UUID
 import psycopg
 
 from relayguard.config import Settings
+from relayguard.db import detect_embedding_storage
 from relayguard.embeddings import DeterministicEmbeddingProvider, vector_literal
 from relayguard.models import (
     ActionIntent,
@@ -509,21 +510,11 @@ class RelayStore:
         )
         return [ActionResult.model_validate(r) for r in rows]
 
+    def get_embedding_mode(self) -> str:
+        return detect_embedding_storage(self.conn)
+
     def _embedding_storage(self) -> str:
-        row = self._fetchone(
-            """
-            SELECT data_type FROM information_schema.columns
-            WHERE table_schema = 'public' AND table_name = 'memories' AND column_name = 'embedding'
-            """
-        )
-        if row is None:
-            return "none"
-        dtype = str(row["data_type"]).lower()
-        if "vector" in dtype:
-            return "vector"
-        if "array" in dtype or "float" in dtype:
-            return "float8[]"
-        return "none"
+        return self.get_embedding_mode()
 
     def _execute(self, sql: str, params: tuple[Any, ...] = ()) -> None:
         with self.conn.cursor() as cur:

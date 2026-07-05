@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
@@ -14,6 +15,8 @@ from relayguard.embeddings import (
 )
 from relayguard.models import Memory, MemoryKind
 from relayguard.store import RelayStore
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -46,11 +49,17 @@ def retrieve_similar_memories(
     embedder = provider or DeterministicEmbeddingProvider()
     query_vec = embedder.embed(incident_text, is_query=True)
 
-    if store._embedding_storage() == "vector":
+    mode = store.get_embedding_mode()
+    logger.info("Memory retrieval embedding mode: %s", mode)
+
+    if mode == "vector":
         ranked = _search_with_vector_sql(store.conn, incident_id, query_vec, limit)
         if ranked is not None:
+            logger.info("Memory retrieval path: CockroachDB VECTOR SQL")
             return ranked
+        logger.info("VECTOR SQL search unavailable; falling back to Python cosine ranking")
 
+    logger.info("Memory retrieval path: FLOAT8[] / Python cosine fallback")
     return _search_in_python(store, incident_id, query_vec, embedder, limit)
 
 

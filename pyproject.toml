@@ -19,6 +19,7 @@ relayguard-create-incident = "apps.cli.create_incident:main"
 relayguard-worker = "apps.cli.run_worker:main"
 relayguard-verify = "apps.cli.verify_demo:main"
 relayguard-audit = "apps.cli.audit_incident:main"
+relayguard-db-status = "apps.cli.db_status:main"
 
 [build-system]
 requires = ["setuptools>=68"]

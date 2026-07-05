@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Accidental ccloud CLI installer downloads
+ccloud.zip
+cockroach-sql.zip
+ccloud/

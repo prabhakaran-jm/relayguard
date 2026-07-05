@@ -1,19 +1,38 @@
 #!/usr/bin/env bash
-# RelayGuard end-to-end local demo: Worker A crash, Worker B failover, stale commit rejection.
+# RelayGuard end-to-end demo: Worker A crash, Worker B failover, stale commit rejection.
 set -eu
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-export DATABASE_URL="${DATABASE_URL:-postgresql://root@localhost:26257/relayguard?sslmode=disable}"
+if [[ -f .env ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
+DB_TARGET="${RELAYGUARD_DB_TARGET:-local}"
 export LEASE_TTL_SECONDS="${LEASE_TTL_SECONDS:-3}"
+if [[ "$DB_TARGET" != "cloud" ]]; then
+  export DATABASE_URL="${DATABASE_URL:-postgresql://root@localhost:26257/relayguard?sslmode=disable}"
+fi
 
 echo "=============================================="
 echo " RelayGuard — crash-safe incident handoff demo"
 echo "=============================================="
+echo "Database target: $DB_TARGET"
 
-bash scripts/setup-db.sh
-INCIDENT_ID="$(cat /tmp/relayguard_incident_id.txt)"
+if [[ "$DB_TARGET" == "cloud" ]]; then
+  echo ""
+  echo "==> Using CockroachDB Cloud (skipping local Docker)"
+  INCIDENT_ID="$(python -m apps.cli.create_incident --apply-schema --title "Hackathon demo incident" | tail -1)"
+  echo "$INCIDENT_ID" > /tmp/relayguard_incident_id.txt
+  echo "Incident ID: $INCIDENT_ID"
+else
+  bash scripts/setup-db.sh
+  INCIDENT_ID="$(cat /tmp/relayguard_incident_id.txt)"
+fi
 
 echo ""
 echo "==> Step 1-5: Worker A claims, classifies memories, reserves action, then crashes"
