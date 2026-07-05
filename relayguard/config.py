@@ -128,17 +128,34 @@ def resolve_database_url(
     return database_url_local
 
 
+_BUNDLED_SSL_ROOT_CERTS = (
+    "/var/task/certs/root.crt",
+    "/app/certs/root.crt",
+)
+
+
+def _bundled_ssl_root_cert() -> str | None:
+    override = os.environ.get("RELAYGUARD_SSL_ROOT_CERT")
+    if override:
+        return override
+    for path in _BUNDLED_SSL_ROOT_CERTS:
+        if os.path.isfile(path):
+            return path
+    return None
+
+
 def ensure_database_url_runtime_compat(database_url: str) -> str:
-    """Bundle-friendly SSL settings for AWS Lambda."""
-    if not (os.environ.get("AWS_LAMBDA_FUNCTION_NAME") or os.environ.get("AWS_EXECUTION_ENV")):
-        return database_url
+    """Adjust SSL settings for runtimes without a local PostgreSQL CA bundle."""
     lowered = database_url.lower()
     if "sslmode=verify-full" not in lowered and "sslmode=verify_full" not in lowered:
         return database_url
     if "sslrootcert=" in lowered:
         return database_url
     separator = "&" if "?" in database_url else "?"
-    return f"{database_url}{separator}sslrootcert=/var/task/certs/root.crt"
+    cert = _bundled_ssl_root_cert()
+    if cert:
+        return f"{database_url}{separator}sslrootcert={cert}"
+    return f"{database_url}{separator}sslrootcert=system"
 
 
 def describe_database_target(database_url: str, db_target: DbTarget) -> str:

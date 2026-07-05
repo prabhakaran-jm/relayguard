@@ -16,7 +16,7 @@
 
 | **GitHub** | https://github.com/prabhakaran-jm/relayguard *(public)* |
 
-| **Demo app** | `http://localhost:3000` — run locally via [`scripts/run-web.ps1`](scripts/run-web.ps1); replace with deployed URL if hosted |
+| **Demo app** | https://relayguard-production.up.railway.app — live judge dashboard (Railway); local: [`scripts/run-web.ps1`](scripts/run-web.ps1) |
 
 | **Demo video** | `https://youtu.be/YOUR_VIDEO_ID` *(replace before Devpost submit)* |
 

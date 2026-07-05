@@ -1,6 +1,8 @@
 import { DashboardView } from "@/components/dashboard-view";
 import { fetchLatestDashboard, listIncidents } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const [data, incidents] = await Promise.all([fetchLatestDashboard(), listIncidents()]);
 

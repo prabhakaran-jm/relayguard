@@ -1,0 +1,14 @@
+.git
+.venv
+**/__pycache__
+**/.pytest_cache
+**/.next
+**/node_modules
+.env
+.env.*
+!.env.example
+docs/evidence/*.txt
+infra/aws/terraform/.terraform
+infra/aws/build
+ccloud.zip
+cockroach-sql.zip

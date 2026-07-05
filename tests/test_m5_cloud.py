@@ -33,6 +33,29 @@ def test_resolve_database_url_cloud_target() -> None:
     assert "cloud@" in url
 
 
+def test_cloud_verify_full_uses_system_trust_store(monkeypatch: pytest.MonkeyPatch) -> None:
+    from relayguard.config import ensure_database_url_runtime_compat
+
+    monkeypatch.delenv("RELAYGUARD_SSL_ROOT_CERT", raising=False)
+    monkeypatch.setattr("relayguard.config.os.path.isfile", lambda _path: False)
+    url = ensure_database_url_runtime_compat(
+        "postgresql://user:pass@host.cockroachlabs.cloud:26257/relayguard?sslmode=verify-full"
+    )
+    assert "sslrootcert=system" in url
+
+
+def test_cloud_verify_full_uses_bundled_cert_when_present(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from relayguard.config import ensure_database_url_runtime_compat
+
+    cert = tmp_path / "root.crt"
+    cert.write_text("dummy", encoding="utf-8")
+    monkeypatch.setenv("RELAYGUARD_SSL_ROOT_CERT", str(cert))
+    url = ensure_database_url_runtime_compat(
+        "postgresql://user:pass@host.cockroachlabs.cloud:26257/relayguard?sslmode=verify-full"
+    )
+    assert f"sslrootcert={cert}" in url
+
+
 def test_redact_database_url_hides_password() -> None:
     raw = "postgresql://relayguard:supersecret@cluster.example:26257/relayguard?sslmode=require"
     redacted = redact_database_url(raw)

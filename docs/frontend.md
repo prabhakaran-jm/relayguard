@@ -35,6 +35,31 @@ chmod +x scripts/run-web.sh && ./scripts/run-web.sh
 
 Ensure a demo incident exists (`scripts/run-demo` or Lambda invoke).
 
+## Deploy to Railway
+
+Railway runs Python + Node in one container so the dashboard keeps the same CLI bridge as local dev.
+
+See **[`infra/railway/README.md`](../infra/railway/README.md)** for full steps. Quick version:
+
+```powershell
+npm i -g @railway/cli
+railway login
+railway init    # or railway link
+```
+
+Set in Railway **Variables**:
+
+| Variable | Value |
+|----------|-------|
+| `RELAYGUARD_DB_TARGET` | `cloud` |
+| `DATABASE_URL_CLOUD` | your CockroachDB Cloud URL |
+| `COCKROACH_VECTOR_MODE` | `vector` |
+
+```powershell
+.\scripts\deploy-web-railway.ps1
+railway domain
+```
+
 ### Troubleshooting
 
 If you see `ENOENT ... routes-manifest.json` or a plain **Internal Server Error**:

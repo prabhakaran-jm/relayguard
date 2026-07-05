@@ -196,7 +196,7 @@ def test_settings_uses_secret_when_configured(monkeypatch: pytest.MonkeyPatch) -
 def test_lambda_database_url_uses_bundled_ca_cert(monkeypatch: pytest.MonkeyPatch) -> None:
     from relayguard.config import ensure_database_url_runtime_compat
 
-    monkeypatch.setenv("AWS_LAMBDA_FUNCTION_NAME", "relayguard-worker")
+    monkeypatch.setenv("RELAYGUARD_SSL_ROOT_CERT", "/var/task/certs/root.crt")
     url = ensure_database_url_runtime_compat(
         "postgresql://user:pass@host:26257/relayguard?sslmode=verify-full"
     )
