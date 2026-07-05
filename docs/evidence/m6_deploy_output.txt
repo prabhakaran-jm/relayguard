@@ -1,0 +1,33 @@
+﻿RelayGuard M6 Lambda Deploy Evidence
+Captured: 2026-07-05T18:48:00+01:00
+AWS Profile: relayguard
+Account: 905418051670
+
+==> Lambda function status
+{
+    "Name": "relayguard-worker",
+    "State": "Active",
+    "LastModified": "2026-07-05T17:41:39.000+0000",
+    "Runtime": "python3.12"
+}
+
+==> Configuration
+- Handler: handler.handler
+- Memory: 512 MB
+- Timeout: 60s
+- Secret: relayguard/db (arn:aws:secretsmanager:us-east-1:905418051670:secret:relayguard/db-DsD6lU)
+- RELAYGUARD_DB_TARGET=cloud
+- ACTION_SELECTOR=mock
+
+==> Build
+- Package: infra/aws/build/lambda.zip
+- Platform: manylinux2014_x86_64 (Linux psycopg for Lambda)
+- Bundled CA: certs/root.crt
+
+==> Terraform resources
+- aws_iam_role.lambda_execution (relayguard-worker-role)
+- aws_iam_role_policy_attachment.lambda_logs
+- aws_iam_role_policy.secrets_read
+- aws_lambda_function.worker
+
+DEPLOY_STATUS: SUCCESS (function Active, db_status invoke verified)

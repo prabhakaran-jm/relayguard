@@ -6,9 +6,12 @@ from dataclasses import dataclass, replace
 from typing import Literal
 from urllib.parse import urlparse
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
 
-load_dotenv()
+    load_dotenv()
+except ImportError:
+    pass
 
 DbTarget = Literal["local", "cloud"]
 VectorMode = Literal["auto", "vector", "float_array"]
@@ -22,6 +25,7 @@ class Settings:
     db_target: DbTarget
     database_url_local: str
     database_url_cloud: str | None
+    database_secret_name: str | None
     cockroach_vector_mode: VectorMode
     ccloud_cluster_name: str | None
     ccloud_database_name: str
@@ -41,9 +45,19 @@ class Settings:
             "postgresql://root@localhost:26257/relayguard?sslmode=disable",
         )
         database_url_cloud = os.environ.get("DATABASE_URL_CLOUD") or None
+        database_secret_name = os.environ.get("RELAYGUARD_DATABASE_SECRET_NAME") or None
         legacy_database_url = os.environ.get("DATABASE_URL")
         db_target = _parse_db_target(os.environ.get("RELAYGUARD_DB_TARGET", "local"))
         vector_mode = _parse_vector_mode(os.environ.get("COCKROACH_VECTOR_MODE", "auto"))
+        aws_region = os.environ.get("AWS_REGION", "us-east-1")
+
+        if database_secret_name and not database_url_cloud:
+            from relayguard.secrets import load_database_url_from_secret
+
+            database_url_cloud = load_database_url_from_secret(
+                database_secret_name,
+                aws_region=aws_region,
+            )
 
         database_url = resolve_database_url(
             db_target=db_target,
@@ -57,6 +71,7 @@ class Settings:
             db_target=db_target,
             database_url_local=database_url_local,
             database_url_cloud=database_url_cloud,
+            database_secret_name=database_secret_name,
             cockroach_vector_mode=vector_mode,
             ccloud_cluster_name=os.environ.get("CCLOUD_CLUSTER_NAME") or None,
             ccloud_database_name=os.environ.get("CCLOUD_DATABASE_NAME", "relayguard"),
@@ -68,7 +83,7 @@ class Settings:
                 "BEDROCK_MODEL_ID",
                 "anthropic.claude-3-haiku-20240307-v1:0",
             ),
-            aws_region=os.environ.get("AWS_REGION", "us-east-1"),
+            aws_region=aws_region,
             incident_severity=os.environ.get("INCIDENT_SEVERITY", "high"),
             action_min_confidence=float(os.environ.get("ACTION_MIN_CONFIDENCE", "0.5")),
         )
@@ -104,13 +119,26 @@ def resolve_database_url(
 ) -> str:
     if db_target == "cloud":
         if database_url_cloud:
-            return database_url_cloud
+            return ensure_database_url_runtime_compat(database_url_cloud)
         if legacy_database_url:
-            return legacy_database_url
+            return ensure_database_url_runtime_compat(legacy_database_url)
         raise ValueError(
             "RELAYGUARD_DB_TARGET=cloud requires DATABASE_URL_CLOUD or DATABASE_URL"
         )
     return database_url_local
+
+
+def ensure_database_url_runtime_compat(database_url: str) -> str:
+    """Bundle-friendly SSL settings for AWS Lambda."""
+    if not (os.environ.get("AWS_LAMBDA_FUNCTION_NAME") or os.environ.get("AWS_EXECUTION_ENV")):
+        return database_url
+    lowered = database_url.lower()
+    if "sslmode=verify-full" not in lowered and "sslmode=verify_full" not in lowered:
+        return database_url
+    if "sslrootcert=" in lowered:
+        return database_url
+    separator = "&" if "?" in database_url else "?"
+    return f"{database_url}{separator}sslrootcert=/var/task/certs/root.crt"
 
 
 def describe_database_target(database_url: str, db_target: DbTarget) -> str:

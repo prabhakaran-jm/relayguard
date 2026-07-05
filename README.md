@@ -46,10 +46,10 @@ CockroachDB gives RelayGuard:
 | Service | RelayGuard usage |
 |---------|------------------|
 | **Amazon Bedrock** | Guarded action selection from allowlisted remediations (`ACTION_SELECTOR=bedrock`) |
-| **AWS Lambda** | Planned M6 regional worker runtime |
-| **CloudWatch** | Planned M6 demo alerts and structured logs |
+| **AWS Lambda** | Regional worker runtime — see `docs/aws-lambda.md` |
+| **CloudWatch** | Lambda worker logs and invoke-demo evidence |
+| **Secrets Manager** | CockroachDB Cloud `DATABASE_URL` for Lambda (`RELAYGUARD_DATABASE_SECRET_NAME`) |
 | **API Gateway** | Planned incident intake |
-| **Secrets Manager** | Planned credentials for Cloud DB and Bedrock |
 
 ## M5: CockroachDB Cloud and sponsor-tool proof
 
@@ -71,6 +71,29 @@ bash infra/ccloud/check-cluster.sh    # ccloud inspection (no secrets)
 ```
 
 Guides: `docs/cockroach-cloud.md`, `docs/ccloud.md`
+
+## M6: AWS Lambda worker deployment
+
+RelayGuard workers run on **AWS Lambda** against CockroachDB Cloud:
+
+| Component | Role |
+|-----------|------|
+| **Lambda handler** | `infra/aws/lambda_worker/handler.py` — `run_worker`, `stale_commit`, `db_status` |
+| **Terraform** | `infra/aws/terraform/` — execution role, CloudWatch Logs, Secrets Manager read |
+| **Deploy scripts** | `infra/aws/scripts/deploy-lambda.*` |
+| **Invoke demo** | `infra/aws/scripts/invoke-demo.*` — full crash handoff via Lambda |
+
+```powershell
+.\infra\aws\scripts\deploy-lambda.ps1 -DatabaseSecretArn "arn:..." -DatabaseSecretName "relayguard/db"
+$env:RELAYGUARD_LAMBDA_FUNCTION_NAME = "relayguard-worker"
+.\infra\aws\scripts\invoke-demo.ps1
+```
+
+- **CloudWatch** captures `[worker-a]` / `[worker-b]` logs from Lambda
+- **Secrets Manager** stores `DATABASE_URL` — never logged or returned by `db_status`
+- **CockroachDB Cloud** remains the memory system of record
+
+Guide: `docs/aws-lambda.md`
 
 ## M3: Bedrock action selection with guardrails
 
@@ -234,7 +257,7 @@ docker compose -f infra/docker-compose.yml up -d
 |-------------------|------------------|
 | **CockroachDB integration** | Lease fencing, vector memory retrieval, checkpoints, action ledger, audit events |
 | **Vector search** | `VECTOR(64)` embeddings with cosine ranking; MemoryGate validates retrieved memories |
-| **AWS integration** | Bedrock action selection with guardrails; Lambda workers and API Gateway planned |
+| **AWS integration** | Bedrock action selection; Lambda workers + CloudWatch + Secrets Manager |
 | **Agent safety** | MemoryGate rejects expired/failed memories regardless of similarity score |
 | **Crash recovery** | Worker B resumes from checkpoint after Worker A crash |
 | **Exactly-once actions** | Idempotent `action_intents` + single `action_results` commit |
@@ -250,7 +273,7 @@ apps/cli/          CLI entry points
 relayguard/        Models, store, embeddings, DB helpers
 workers/           MemoryGate, memory retriever, worker runtime
 db/                CockroachDB schema
-infra/             Docker Compose + ccloud helper scripts
+infra/             Docker Compose, ccloud, and AWS Lambda/Terraform
 scripts/           Demo and verification scripts
 tests/             Pytest suite
 docs/              Architecture notes

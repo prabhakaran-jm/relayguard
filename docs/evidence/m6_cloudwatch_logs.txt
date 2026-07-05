@@ -1,0 +1,33 @@
+﻿RelayGuard M6 CloudWatch Logs Evidence
+Log group: /aws/lambda/relayguard-worker
+Region: us-east-1
+Captured: 2026-07-05T18:48:46+01:00
+Evidence incident: c61104ce-9f84-4b51-b3f2-41c25907be5a
+
+[worker-a] starting for incident c61104ce-9f84-4b51-b3f2-41c25907be5a
+[worker-a] claimed lease epoch=1
+[worker-a] score=0.891 historical_incident verdict=INSPECT reason=related historical incident requires human review
+[worker-a] score=0.878 expired_runbook verdict=AVOID reason=runbook is expired or deprecated
+[worker-a] score=0.854 failed_restart verdict=AVOID reason=prior action failed and must not be repeated
+[worker-a] score=0.841 current_runbook verdict=USE reason=active runbook approved for current incident response
+[worker-a] score=0.747 unrelated_finance verdict=AVOID reason=memory is unrelated to the active incident
+[worker-a] action.selected ROUTE_TO_STANDBY confidence=1.00 selector=mock
+[worker-a] reserving action ROUTE_TO_STANDBY (idempotency=c61104ce-9f84-4b51-b3f2-41c25907be5a:ROUTE_TO_STANDBY:v1)
+[worker-a] action reserved intent_id=b3f427f3-09d6-4a1b-9123-d41d6dcc0660
+[worker-a] FAIL_AFTER=ACTION_RESERVED — simulating crash
+
+[worker-b] starting for incident c61104ce-9f84-4b51-b3f2-41c25907be5a
+[worker-b] claimed lease epoch=2
+[worker-b] resuming checkpoint from worker-a epoch=1 phase=checkpoint.memories_classified
+[worker-b] adopting reserved intent intent_id=b3f427f3-09d6-4a1b-9123-d41d6dcc0660
+[worker-b] committing action intent_id=b3f427f3-09d6-4a1b-9123-d41d6dcc0660
+[worker-b] action committed result_id=e397e61d-8538-42c9-b544-49ef98832010
+[worker-b] done
+
+[worker-a] stale commit attempt epoch=1
+[worker-a] stale commit rejected as expected
+
+Proof points:
+- worker-a reserved action then simulated crash (exit_code 2)
+- worker-b resumed with higher epoch and committed once
+- worker-a stale commit rejected

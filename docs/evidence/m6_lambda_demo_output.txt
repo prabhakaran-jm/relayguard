@@ -1,0 +1,50 @@
+﻿RelayGuard M6 Lambda Handoff Demo Evidence
+==========================================
+Timestamp: 2026-07-05T18:47:18+01:00
+Function: relayguard-worker
+Region: us-east-1
+Incident: c61104ce-9f84-4b51-b3f2-41c25907be5a
+
+Checklist
+---------
+[x] Lambda Worker A reserved action and exited controlled failure (exit_code=2)
+[x] Lambda Worker B resumed and committed once (exit_code=0)
+[x] Lambda stale commit rejected Worker A (rejected=true)
+[x] verify_demo returns PASS
+[x] audit_incident returns Invariants: PASS
+
+Lambda invoke: worker-a
+-----------------------
+Response: exit_code=2, status=simulated_crash
+intent_id=b3f427f3-09d6-4a1b-9123-d41d6dcc0660
+lease_epoch=1
+
+Lambda invoke: worker-b
+-----------------------
+Response: exit_code=0, status=completed
+
+Lambda invoke: stale_commit (worker-a)
+----------------------------------------
+Response: rejected=true, status=rejected
+
+verify_demo
+-----------
+Incident: c61104ce-9f84-4b51-b3f2-41c25907be5a
+Committed actions: 1
+Stale commits rejected: 1
+Retrieved memories: 5
+AVOID memories: 3
+USE memories: 1
+Audit events: 17
+--- PASS ---
+RelayGuard demo verified: one committed action, semantic retrieval, MemoryGate audit trail.
+
+audit_incident
+--------------
+Invariants: PASS
+Selected: ROUTE_TO_STANDBY
+Committed actions: 1
+Stale commit rejections: 1
+
+See m6_audit_report.txt for full audit report.
+See m6_cloudwatch_logs.txt and m6_cloudwatch_logs.png for CloudWatch worker-a/worker-b logs.

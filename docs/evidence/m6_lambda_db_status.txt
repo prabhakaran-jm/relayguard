@@ -1,0 +1,28 @@
+﻿RelayGuard M6 Lambda db_status Evidence
+Captured: 2026-07-05T18:47:00+01:00
+Function: relayguard-worker
+Region: us-east-1
+
+AWS CLI invoke:
+  aws lambda invoke --function-name relayguard-worker \
+    --payload '{"mode":"db_status"}' db-status.json
+
+Response:
+{
+  "ok": true,
+  "mode": "db_status",
+  "db_target": "cloud",
+  "database_target": "cloud (relayguard-28416.j77.aws-us-east-1.cockroachlabs.cloud:26257/relayguard)",
+  "redacted_database_url": "postgresql://relayguard_app:***@relayguard-28416.j77.aws-us-east-1.cockroachlabs.cloud:26257/relayguard?sslmode=verify-full&sslrootcert=/var/task/certs/root.crt",
+  "database_version": "CockroachDB CCL v25.4.10 (x86_64-pc-linux-gnu, built 2026/04/29 11:09:08, go1.23.12 X:nocoverageredesign)",
+  "vector_mode_setting": "auto",
+  "embedding_storage_mode": "vector",
+  "vector_index_present": true,
+  "memory_count": 55,
+  "incident_count": 11
+}
+
+Proof points:
+- db_target=cloud (CockroachDB Cloud)
+- embedding_storage_mode=vector (native VECTOR indexing)
+- No credentials in response (password redacted)

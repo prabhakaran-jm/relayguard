@@ -1,0 +1,48 @@
+﻿RelayGuard Audit Report
+=======================
+Incident:      c61104ce-9f84-4b51-b3f2-41c25907be5a
+Title:         Lambda handoff demo
+Invariants:    PASS
+
+Action selection
+----------------
+Selected:      ROUTE_TO_STANDBY
+Selector:      mock
+Confidence:    1.0
+Fallback used: False
+Reason:        Mock selector: approved runbook recommends routing to standby.
+Used memories: 80a79929-c58b-4ae7-ade7-687f032fc9c6
+Inspected:     5309dc74-92be-42c5-b0a9-e764744cfaf9
+
+MemoryGate verdicts
+-------------------
+  failed_restart         AVOID    score=0.854 ù prior action failed and must not be repeated
+  expired_runbook        AVOID    score=0.878 ù runbook is expired or deprecated
+  historical_incident    INSPECT  score=0.891 ù related historical incident requires human review
+  current_runbook        USE      score=0.841 ù active runbook approved for current incident response
+  unrelated_finance      AVOID    score=0.747 ù memory is unrelated to the active incident
+
+Execution summary
+-----------------
+Committed actions:         1
+Stale commit rejections:   1
+
+Timeline
+--------
+  memories.seeded              worker=- epoch=- ù seeded 5 memories
+  incident.created             worker=- epoch=- ù Lambda handoff demo
+  action.selected              worker=worker-a epoch=1 ù ROUTE_TO_STANDBY via mock
+  memory.retrieved             worker=worker-a epoch=1 ù retrieved 5 memories
+  checkpoint.action_reserved   worker=worker-a epoch=1 ù checkpoint checkpoint.action_reserved
+  checkpoint.memories_classified worker=worker-a epoch=1 ù checkpoint checkpoint.memories_classified
+  memory.classified            worker=worker-a epoch=1 ù failed_restart -> AVOID
+  memory.classified            worker=worker-a epoch=1 ù expired_runbook -> AVOID
+  memory.classified            worker=worker-a epoch=1 ù historical_incident -> INSPECT
+  memory.classified            worker=worker-a epoch=1 ù current_runbook -> USE
+  action_intent.reserved       worker=worker-a epoch=1 ù reserved ROUTE_TO_STANDBY
+  memory.classified            worker=worker-a epoch=1 ù unrelated_finance -> AVOID
+  lease.claimed                worker=worker-a epoch=1 ù incident lease claimed
+  lease.claimed                worker=worker-b epoch=2 ù incident lease claimed
+  action.committed             worker=worker-b epoch=2 ù committed ROUTE_TO_STANDBY
+  checkpoint.completed         worker=worker-b epoch=2 ù checkpoint checkpoint.completed
+  action.commit_rejected       worker=worker-a epoch=1 ù rejected stale commit (already_committed)

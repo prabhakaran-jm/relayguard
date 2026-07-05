@@ -221,3 +221,9 @@ __marimo__/
 ccloud.zip
 cockroach-sql.zip
 ccloud/
+
+# AWS Lambda build artifacts
+infra/aws/build/
+infra/aws/terraform/.terraform/
+infra/aws/terraform/*.tfstate
+infra/aws/terraform/*.tfstate.*
