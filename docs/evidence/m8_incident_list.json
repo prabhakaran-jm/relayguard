@@ -1,6 +1,20 @@
 {
   "incidents": [
     {
+      "incident_id": "ff8d161e-4a7c-4894-9f8d-5759bd32504e",
+      "title": "API latency spike in us-east-1, primary health checks failing",
+      "status": "resolved",
+      "created_at": "2026-07-05 21:47:29.666060+00:00",
+      "invariant_status": "PASS"
+    },
+    {
+      "incident_id": "6d85f4dc-f5f2-445e-a963-bb5b8d95f3d8",
+      "title": "Bedrock embeddings + selector demo",
+      "status": "resolved",
+      "created_at": "2026-07-05 21:44:16.443709+00:00",
+      "invariant_status": "PASS"
+    },
+    {
       "incident_id": "45148da3-04ec-4793-8645-14cbc16d902f",
       "title": "Bedrock embeddings + selector demo",
       "status": "resolved",
@@ -124,20 +138,6 @@
       "title": "db status test",
       "status": "open",
       "created_at": "2026-07-05 16:35:56.041592+00:00",
-      "invariant_status": "FAIL"
-    },
-    {
-      "incident_id": "ee794412-f31a-4123-be15-12d9c8496384",
-      "title": "Hackathon demo incident",
-      "status": "resolved",
-      "created_at": "2026-07-05 16:34:13.825651+00:00",
-      "invariant_status": "PASS"
-    },
-    {
-      "incident_id": "fa0995f2-23a1-4e0e-a35b-d36f2b1db462",
-      "title": "Cloud smoke test",
-      "status": "open",
-      "created_at": "2026-07-05 16:32:43.641656+00:00",
       "invariant_status": "FAIL"
     }
   ]

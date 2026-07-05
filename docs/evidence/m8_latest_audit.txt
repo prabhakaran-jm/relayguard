@@ -1,26 +1,26 @@
 RelayGuard Audit Report
 =======================
-Incident:      45148da3-04ec-4793-8645-14cbc16d902f
-Title:         Bedrock embeddings + selector demo
+Incident:      ff8d161e-4a7c-4894-9f8d-5759bd32504e
+Title:         API latency spike in us-east-1, primary health checks failing
 Invariants:    PASS
 
 Action selection
 ----------------
 Selected:      ESCALATE_TO_HUMAN
 Selector:      bedrock
-Confidence:    0.85
+Confidence:    0.75
 Fallback used: False
-Reason:        High severity incident requires human review. Historical precedent (read replica promotion) exists but is flagged as requiring human review before acting. Backup verification runbook should be consulted by on-call engineer.
-Used memories: runbook_backup_verify
-Inspected:     historical_incident_db_outage
+Reason:        High severity incident with conflicting signals: current runbook supports standby routing, but historical precedent requires human review before acting. Three prior similar actions failed (DNS cutover, pod drain, restart). Given the blocked evidence and caution flag, human judgment is needed to determine if standby routing is safe or if a different approach is required.
+Used memories: current_runbook
+Inspected:     historical_incident
 
 MemoryGate verdicts
 -------------------
-  runbook_backup_verify  USE      score=0.309 — active runbook approved for current incident response
-  noise_recruiting_pipeline AVOID    score=0.289 — memory is unrelated to the active incident
-  noise_marketing_newsletter AVOID    score=0.279 — memory is unrelated to the active incident
-  noise_sales_deck       AVOID    score=0.271 — memory is unrelated to the active incident
-  historical_incident_db_outage INSPECT  score=0.268 — related historical incident requires human review
+  failed_action_dns_cutover AVOID    score=0.448 — prior action failed and must not be repeated
+  historical_incident    INSPECT  score=0.362 — related historical incident requires human review
+  failed_action_pod_drain AVOID    score=0.340 — prior action failed and must not be repeated
+  current_runbook        USE      score=0.323 — active runbook approved for current incident response
+  failed_action_similar_restart AVOID    score=0.281 — prior action failed and must not be repeated
 
 Execution summary
 -----------------
@@ -31,19 +31,19 @@ Blocked memories (AVOID):  3
 
 Action ledger
 -------------
-  ESCALATE_TO_HUMAN    committed  key=45148da3-04ec-4793-8645-14cbc16d902f:ESCALATE_TO_HUMAN:v1 result=54e4eb2a-b7ca-4e02-9de5-5d7888e16dc3
+  ESCALATE_TO_HUMAN    committed  key=ff8d161e-4a7c-4894-9f8d-5759bd32504e:ESCALATE_TO_HUMAN:v1 result=5039afe3-3cbb-4f5d-956d-fe9ae78d9765
 
 Timeline
 --------
-  incident.created             worker=- epoch=- — Bedrock embeddings + selector demo
+  incident.created             worker=- epoch=- — API latency spike in us-east-1, primary health checks failing
   memories.seeded              worker=- epoch=- — seeded 63 memories
   lease.claimed                worker=worker-a epoch=1 — incident lease claimed
   memory.retrieved             worker=worker-a epoch=1 — retrieved 5 memories
-  memory.classified            worker=worker-a epoch=1 — runbook_backup_verify -> USE
-  memory.classified            worker=worker-a epoch=1 — noise_recruiting_pipeline -> AVOID
-  memory.classified            worker=worker-a epoch=1 — noise_marketing_newsletter -> AVOID
-  memory.classified            worker=worker-a epoch=1 — noise_sales_deck -> AVOID
-  memory.classified            worker=worker-a epoch=1 — historical_incident_db_outage -> INSPECT
+  memory.classified            worker=worker-a epoch=1 — failed_action_dns_cutover -> AVOID
+  memory.classified            worker=worker-a epoch=1 — historical_incident -> INSPECT
+  memory.classified            worker=worker-a epoch=1 — failed_action_pod_drain -> AVOID
+  memory.classified            worker=worker-a epoch=1 — current_runbook -> USE
+  memory.classified            worker=worker-a epoch=1 — failed_action_similar_restart -> AVOID
   checkpoint.memories_classified worker=worker-a epoch=1 — checkpoint checkpoint.memories_classified
   action.selected              worker=worker-a epoch=1 — ESCALATE_TO_HUMAN via bedrock
   action_intent.reserved       worker=worker-a epoch=1 — reserved ESCALATE_TO_HUMAN

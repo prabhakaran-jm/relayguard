@@ -3,7 +3,7 @@ RelayGuard judge dashboard
 
 Live (Railway):
    https://relayguard-production.up.railway.app
-   https://relayguard-production.up.railway.app/incident/45148da3-04ec-4793-8645-14cbc16d902f
+   https://relayguard-production.up.railway.app/incident/ff8d161e-4a7c-4894-9f8d-5759bd32504e
 
 Local:
 1. Start the read-only dashboard:
@@ -12,9 +12,9 @@ Local:
 
 2. Open in browser:
    http://localhost:3000
-   http://localhost:3000/incident/45148da3-04ec-4793-8645-14cbc16d902f
+   http://localhost:3000/incident/ff8d161e-4a7c-4894-9f8d-5759bd32504e
 
-Latest captured incident: 45148da3-04ec-4793-8645-14cbc16d902f
+Latest captured incident: ff8d161e-4a7c-4894-9f8d-5759bd32504e
 
 3. API (read-only JSON):
    GET http://localhost:3000/api/incidents

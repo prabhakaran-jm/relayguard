@@ -1,5 +1,132 @@
-﻿
+
 RelayGuard Bedrock selector demo
 ================================
-Started: 2026-07-05T21:49:43.4340785+01:00
+Started: 2026-07-05T22:47:23.9361966+01:00
 
+{"ok": true}
+==============================================
+ RelayGuard - crash-safe incident handoff demo
+==============================================
+Database target: cloud
+
+==> Using CockroachDB Cloud (skipping local Docker)
+==> Applying schema and creating incident
+Incident ID: ff8d161e-4a7c-4894-9f8d-5759bd32504e
+
+==> Step 1-5: Worker A claims, classifies memories, reserves action, then crashes
+[worker-a] starting for incident ff8d161e-4a7c-4894-9f8d-5759bd32504e
+[worker-a] claimed lease epoch=1
+[worker-a] score=0.448 failed_action_dns_cutover verdict=AVOID reason=prior action failed and must not be repeated
+[worker-a] score=0.362 historical_incident verdict=INSPECT reason=related historical incident requires human review
+[worker-a] score=0.340 failed_action_pod_drain verdict=AVOID reason=prior action failed and must not be repeated
+[worker-a] score=0.323 current_runbook verdict=USE reason=active runbook approved for current incident response
+[worker-a] score=0.281 failed_action_similar_restart verdict=AVOID reason=prior action failed and must not be repeated
+[worker-a] action.selected ESCALATE_TO_HUMAN confidence=0.75 selector=bedrock
+[worker-a] reserving action ESCALATE_TO_HUMAN (idempotency=ff8d161e-4a7c-4894-9f8d-5759bd32504e:ESCALATE_TO_HUMAN:v1)
+[worker-a] action reserved intent_id=1e6e3cbf-a5f8-4035-a9c1-c0c1ef2bff3f
+[worker-a] FAIL_AFTER=ACTION_RESERVED ù simulating crash
+Worker A crashed after reservation (exit 2)
+Captured intent_id=1e6e3cbf-a5f8-4035-a9c1-c0c1ef2bff3f worker_a_epoch=1
+
+==> Step 6-7: Waiting for lease expiry (3s)...
+
+==> Step 8-9: Worker B claims with higher epoch and commits once
+[worker-b] starting for incident ff8d161e-4a7c-4894-9f8d-5759bd32504e
+[worker-b] claimed lease epoch=2
+[worker-b] resuming checkpoint from worker-a epoch=1 phase=checkpoint.action_reserved
+[worker-b] committing action intent_id=1e6e3cbf-a5f8-4035-a9c1-c0c1ef2bff3f
+[worker-b] action committed result_id=5039afe3-3cbb-4f5d-956d-fe9ae78d9765
+[worker-b] done
+
+==> Step 10: Worker A attempts stale commit (should be rejected)
+[worker-a] stale commit attempt epoch=1
+[worker-a] stale commit rejected as expected
+
+==> Step 11: Verify demo invariants
+Incident: ff8d161e-4a7c-4894-9f8d-5759bd32504e
+Committed actions: 1
+Stale commits rejected: 1
+Retrieved memories: 5
+AVOID memories: 3
+USE memories: 1
+Audit events: 17
+--- audit trail ---
+  incident.created               worker=- epoch=-
+  memories.seeded                worker=- epoch=-
+  lease.claimed                  worker=worker-a epoch=1
+  memory.retrieved               worker=worker-a epoch=1
+  memory.classified              worker=worker-a epoch=1
+  memory.classified              worker=worker-a epoch=1
+  memory.classified              worker=worker-a epoch=1
+  memory.classified              worker=worker-a epoch=1
+  memory.classified              worker=worker-a epoch=1
+  checkpoint.memories_classified worker=worker-a epoch=1
+  action.selected                worker=worker-a epoch=1
+  action_intent.reserved         worker=worker-a epoch=1
+  checkpoint.action_reserved     worker=worker-a epoch=1
+  lease.claimed                  worker=worker-b epoch=2
+  action.committed               worker=worker-b epoch=2
+  checkpoint.completed           worker=worker-b epoch=2
+  action.commit_rejected         worker=worker-a epoch=1
+--- PASS ---
+RelayGuard demo verified: one committed action, semantic retrieval, MemoryGate audit trail.
+
+==> Step 12: Audit incident report
+RelayGuard Audit Report
+=======================
+Incident:      ff8d161e-4a7c-4894-9f8d-5759bd32504e
+Title:         API latency spike in us-east-1, primary health checks failing
+Invariants:    PASS
+
+Action selection
+----------------
+Selected:      ESCALATE_TO_HUMAN
+Selector:      bedrock
+Confidence:    0.75
+Fallback used: False
+Reason:        High severity incident with conflicting signals: current runbook supports standby routing, but historical precedent requires human review before acting. Three prior similar actions failed (DNS cutover, pod drain, restart). Given the blocked evidence and caution flag, human judgment is needed to determine if standby routing is safe or if a different approach is required.
+Used memories: current_runbook
+Inspected:     historical_incident
+
+MemoryGate verdicts
+-------------------
+  failed_action_dns_cutover AVOID    score=0.448 ù prior action failed and must not be repeated
+  historical_incident    INSPECT  score=0.362 ù related historical incident requires human review
+  failed_action_pod_drain AVOID    score=0.340 ù prior action failed and must not be repeated
+  current_runbook        USE      score=0.323 ù active runbook approved for current incident response
+  failed_action_similar_restart AVOID    score=0.281 ù prior action failed and must not be repeated
+
+Execution summary
+-----------------
+Committed actions:         1
+Stale commit rejections:   1
+Retrieved memories:        5
+Blocked memories (AVOID):  3
+
+Action ledger
+-------------
+  ESCALATE_TO_HUMAN    committed  key=ff8d161e-4a7c-4894-9f8d-5759bd32504e:ESCALATE_TO_HUMAN:v1 result=5039afe3-3cbb-4f5d-956d-fe9ae78d9765
+
+Timeline
+--------
+  incident.created             worker=- epoch=- ù API latency spike in us-east-1, primary health checks failing
+  memories.seeded              worker=- epoch=- ù seeded 63 memories
+  lease.claimed                worker=worker-a epoch=1 ù incident lease claimed
+  memory.retrieved             worker=worker-a epoch=1 ù retrieved 5 memories
+  memory.classified            worker=worker-a epoch=1 ù failed_action_dns_cutover -> AVOID
+  memory.classified            worker=worker-a epoch=1 ù historical_incident -> INSPECT
+  memory.classified            worker=worker-a epoch=1 ù failed_action_pod_drain -> AVOID
+  memory.classified            worker=worker-a epoch=1 ù current_runbook -> USE
+  memory.classified            worker=worker-a epoch=1 ù failed_action_similar_restart -> AVOID
+  checkpoint.memories_classified worker=worker-a epoch=1 ù checkpoint checkpoint.memories_classified
+  action.selected              worker=worker-a epoch=1 ù ESCALATE_TO_HUMAN via bedrock
+  action_intent.reserved       worker=worker-a epoch=1 ù reserved ESCALATE_TO_HUMAN
+  checkpoint.action_reserved   worker=worker-a epoch=1 ù checkpoint checkpoint.action_reserved
+  lease.claimed                worker=worker-b epoch=2 ù incident lease claimed
+  action.committed             worker=worker-b epoch=2 ù committed ESCALATE_TO_HUMAN
+  checkpoint.completed         worker=worker-b epoch=2 ù checkpoint checkpoint.completed
+  action.commit_rejected       worker=worker-a epoch=1 ù rejected stale commit (already_committed)
+
+Demo complete.
+
+Finished: 2026-07-05T22:48:47.7321406+01:00

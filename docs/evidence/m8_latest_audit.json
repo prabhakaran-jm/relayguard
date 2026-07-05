@@ -1,52 +1,52 @@
 {
-  "incident_id": "45148da3-04ec-4793-8645-14cbc16d902f",
-  "incident_title": "Bedrock embeddings + selector demo",
+  "incident_id": "ff8d161e-4a7c-4894-9f8d-5759bd32504e",
+  "incident_title": "API latency spike in us-east-1, primary health checks failing",
   "selected_action": "ESCALATE_TO_HUMAN",
   "selector_type": "bedrock",
-  "selection_reason": "High severity incident requires human review. Historical precedent (read replica promotion) exists but is flagged as requiring human review before acting. Backup verification runbook should be consulted by on-call engineer.",
-  "selection_confidence": 0.85,
+  "selection_reason": "High severity incident with conflicting signals: current runbook supports standby routing, but historical precedent requires human review before acting. Three prior similar actions failed (DNS cutover, pod drain, restart). Given the blocked evidence and caution flag, human judgment is needed to determine if standby routing is safe or if a different approach is required.",
+  "selection_confidence": 0.75,
   "fallback_used": false,
   "used_memory_ids": [
-    "runbook_backup_verify"
+    "current_runbook"
   ],
   "inspected_memory_ids": [
-    "historical_incident_db_outage"
+    "historical_incident"
   ],
   "memory_verdicts": [
     {
-      "memory_id": "eb9dfcd5-f8bc-46fd-b46b-b9a075dd214c",
-      "label": "runbook_backup_verify",
-      "verdict": "USE",
-      "reason": "active runbook approved for current incident response",
-      "similarity_score": 0.3094
-    },
-    {
-      "memory_id": "c18f5090-d4c7-4b2b-b9d9-002a7cc7dbde",
-      "label": "noise_recruiting_pipeline",
+      "memory_id": "d4f6b1b8-ce83-4962-9d97-379bfcf75411",
+      "label": "failed_action_dns_cutover",
       "verdict": "AVOID",
-      "reason": "memory is unrelated to the active incident",
-      "similarity_score": 0.2886
+      "reason": "prior action failed and must not be repeated",
+      "similarity_score": 0.4484
     },
     {
-      "memory_id": "93342255-1884-4096-824e-1f4452f9f895",
-      "label": "noise_marketing_newsletter",
-      "verdict": "AVOID",
-      "reason": "memory is unrelated to the active incident",
-      "similarity_score": 0.2786
-    },
-    {
-      "memory_id": "b96ac561-750e-4475-9f30-a75131f9d66a",
-      "label": "noise_sales_deck",
-      "verdict": "AVOID",
-      "reason": "memory is unrelated to the active incident",
-      "similarity_score": 0.2707
-    },
-    {
-      "memory_id": "af4b0d9d-69aa-43b4-afad-2eed96fa0bfc",
-      "label": "historical_incident_db_outage",
+      "memory_id": "d4fd572b-6c9c-4ccf-b54a-1256c30b4e26",
+      "label": "historical_incident",
       "verdict": "INSPECT",
       "reason": "related historical incident requires human review",
-      "similarity_score": 0.2684
+      "similarity_score": 0.3618
+    },
+    {
+      "memory_id": "393b35ab-546f-4043-a204-67f74856d3da",
+      "label": "failed_action_pod_drain",
+      "verdict": "AVOID",
+      "reason": "prior action failed and must not be repeated",
+      "similarity_score": 0.3403
+    },
+    {
+      "memory_id": "3d6e8291-a7a6-4f81-b894-c9b64dfdac20",
+      "label": "current_runbook",
+      "verdict": "USE",
+      "reason": "active runbook approved for current incident response",
+      "similarity_score": 0.3231
+    },
+    {
+      "memory_id": "f15df6be-a64d-4d28-a051-ec51bd5b9c34",
+      "label": "failed_action_similar_restart",
+      "verdict": "AVOID",
+      "reason": "prior action failed and must not be repeated",
+      "similarity_score": 0.2809
     }
   ],
   "execution_timeline": [
@@ -54,128 +54,128 @@
       "event_type": "incident.created",
       "worker": null,
       "lease_epoch": null,
-      "summary": "Bedrock embeddings + selector demo",
-      "created_at": "2026-07-05 21:15:50.142343+00:00"
+      "summary": "API latency spike in us-east-1, primary health checks failing",
+      "created_at": "2026-07-05 21:47:29.666060+00:00"
     },
     {
       "event_type": "memories.seeded",
       "worker": null,
       "lease_epoch": null,
       "summary": "seeded 63 memories",
-      "created_at": "2026-07-05 21:15:50.142343+00:00"
+      "created_at": "2026-07-05 21:47:29.666060+00:00"
     },
     {
       "event_type": "lease.claimed",
       "worker": "worker-a",
       "lease_epoch": 1,
       "summary": "incident lease claimed",
-      "created_at": "2026-07-05 21:16:44.623919+00:00"
+      "created_at": "2026-07-05 21:48:24.531611+00:00"
     },
     {
       "event_type": "memory.retrieved",
       "worker": "worker-a",
       "lease_epoch": 1,
       "summary": "retrieved 5 memories",
-      "created_at": "2026-07-05 21:16:45.144599+00:00"
+      "created_at": "2026-07-05 21:48:24.940797+00:00"
     },
     {
       "event_type": "memory.classified",
       "worker": "worker-a",
       "lease_epoch": 1,
-      "summary": "runbook_backup_verify -> USE",
-      "created_at": "2026-07-05 21:16:45.144599+00:00"
+      "summary": "failed_action_dns_cutover -> AVOID",
+      "created_at": "2026-07-05 21:48:24.940797+00:00"
     },
     {
       "event_type": "memory.classified",
       "worker": "worker-a",
       "lease_epoch": 1,
-      "summary": "noise_recruiting_pipeline -> AVOID",
-      "created_at": "2026-07-05 21:16:45.144599+00:00"
+      "summary": "historical_incident -> INSPECT",
+      "created_at": "2026-07-05 21:48:24.940797+00:00"
     },
     {
       "event_type": "memory.classified",
       "worker": "worker-a",
       "lease_epoch": 1,
-      "summary": "noise_marketing_newsletter -> AVOID",
-      "created_at": "2026-07-05 21:16:45.144599+00:00"
+      "summary": "failed_action_pod_drain -> AVOID",
+      "created_at": "2026-07-05 21:48:24.940797+00:00"
     },
     {
       "event_type": "memory.classified",
       "worker": "worker-a",
       "lease_epoch": 1,
-      "summary": "noise_sales_deck -> AVOID",
-      "created_at": "2026-07-05 21:16:45.144599+00:00"
+      "summary": "current_runbook -> USE",
+      "created_at": "2026-07-05 21:48:24.940797+00:00"
     },
     {
       "event_type": "memory.classified",
       "worker": "worker-a",
       "lease_epoch": 1,
-      "summary": "historical_incident_db_outage -> INSPECT",
-      "created_at": "2026-07-05 21:16:45.144599+00:00"
+      "summary": "failed_action_similar_restart -> AVOID",
+      "created_at": "2026-07-05 21:48:24.940797+00:00"
     },
     {
       "event_type": "checkpoint.memories_classified",
       "worker": "worker-a",
       "lease_epoch": 1,
       "summary": "checkpoint checkpoint.memories_classified",
-      "created_at": "2026-07-05 21:16:45.144599+00:00"
+      "created_at": "2026-07-05 21:48:24.940797+00:00"
     },
     {
       "event_type": "action.selected",
       "worker": "worker-a",
       "lease_epoch": 1,
       "summary": "ESCALATE_TO_HUMAN via bedrock",
-      "created_at": "2026-07-05 21:16:48.074268+00:00"
+      "created_at": "2026-07-05 21:48:27.730131+00:00"
     },
     {
       "event_type": "action_intent.reserved",
       "worker": "worker-a",
       "lease_epoch": 1,
       "summary": "reserved ESCALATE_TO_HUMAN",
-      "created_at": "2026-07-05 21:16:48.074268+00:00"
+      "created_at": "2026-07-05 21:48:27.730131+00:00"
     },
     {
       "event_type": "checkpoint.action_reserved",
       "worker": "worker-a",
       "lease_epoch": 1,
       "summary": "checkpoint checkpoint.action_reserved",
-      "created_at": "2026-07-05 21:16:51.097293+00:00"
+      "created_at": "2026-07-05 21:48:30.783501+00:00"
     },
     {
       "event_type": "lease.claimed",
       "worker": "worker-b",
       "lease_epoch": 2,
       "summary": "incident lease claimed",
-      "created_at": "2026-07-05 21:16:58.935996+00:00"
+      "created_at": "2026-07-05 21:48:38.698537+00:00"
     },
     {
       "event_type": "action.committed",
       "worker": "worker-b",
       "lease_epoch": 2,
       "summary": "committed ESCALATE_TO_HUMAN",
-      "created_at": "2026-07-05 21:16:59.403449+00:00"
+      "created_at": "2026-07-05 21:48:39.214168+00:00"
     },
     {
       "event_type": "checkpoint.completed",
       "worker": "worker-b",
       "lease_epoch": 2,
       "summary": "checkpoint checkpoint.completed",
-      "created_at": "2026-07-05 21:17:00.237181+00:00"
+      "created_at": "2026-07-05 21:48:40.143686+00:00"
     },
     {
       "event_type": "action.commit_rejected",
       "worker": "worker-a",
       "lease_epoch": 1,
       "summary": "rejected stale commit (already_committed)",
-      "created_at": "2026-07-05 21:17:02.074228+00:00"
+      "created_at": "2026-07-05 21:48:42.186177+00:00"
     }
   ],
   "action_ledger": [
     {
       "action_type": "ESCALATE_TO_HUMAN",
-      "idempotency_key": "45148da3-04ec-4793-8645-14cbc16d902f:ESCALATE_TO_HUMAN:v1",
+      "idempotency_key": "ff8d161e-4a7c-4894-9f8d-5759bd32504e:ESCALATE_TO_HUMAN:v1",
       "status": "committed",
-      "result_id": "54e4eb2a-b7ca-4e02-9de5-5d7888e16dc3"
+      "result_id": "5039afe3-3cbb-4f5d-956d-fe9ae78d9765"
     }
   ],
   "committed_action_count": 1,

@@ -4,8 +4,8 @@ Target:              cloud
 Connection:          cloud (relayguard-28416.j77.aws-us-east-1.cockroachlabs.cloud:26257/relayguard)
 Redacted URL:        postgresql://relayguard_app:***@relayguard-28416.j77.aws-us-east-1.cockroachlabs.cloud:26257/relayguard?sslmode=verify-full&sslrootcert=C:\Users\User\Projects\relayguard\infra\aws\lambda_worker\certs\root.crt
 Database version:    CockroachDB CCL v25.4.10 (x86_64-pc-linux-gnu, built 2026/04/29 11:09:08, go1.23.12 X:nocoverageredesign)
-Vector mode setting: auto
+Vector mode setting: vector
 Embedding storage:   vector
 Vector index:        yes
-Memories:            506
-Incidents:           20
+Memories:            632
+Incidents:           22

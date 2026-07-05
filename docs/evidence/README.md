@@ -12,31 +12,34 @@ Use this incident for the judge dashboard, Devpost screenshots, and demo video:
 
 | Field | Value |
 |-------|-------|
-| **Incident ID** | `45148da3-04ec-4793-8645-14cbc16d902f` |
-| **Title** | Bedrock embeddings + selector demo |
+| **Incident ID** | `ff8d161e-4a7c-4894-9f8d-5759bd32504e` |
+| **Title** | API latency spike in us-east-1, primary health checks failing |
 | **Selector** | `bedrock` → dashboard shows **Amazon Bedrock** |
-| **Selected action** | `ESCALATE_TO_HUMAN` (confidence 0.85) |
+| **Selected action** | `ESCALATE_TO_HUMAN` (confidence 0.75) |
 | **Proof counts** | 1 committed action, 1 stale commit rejected, invariants **PASS** |
 | **Corpus** | 63 memories seeded; 5 retrieved; 3 AVOID, 1 USE, 1 INSPECT |
+| **Bedrock story** | USE runbook supports standby routing; INSPECT precedent + blocked failures → Bedrock escalates instead of auto-remediating |
 
 **Live dashboard (Railway):**
 
 - Home (latest incident): https://relayguard-production.up.railway.app
-- Deep link: https://relayguard-production.up.railway.app/incident/45148da3-04ec-4793-8645-14cbc16d902f
+- Deep link: https://relayguard-production.up.railway.app/incident/ff8d161e-4a7c-4894-9f8d-5759bd32504e
 
 See also [`m8_dashboard_instructions.txt`](./m8_dashboard_instructions.txt) for local URLs and API routes.
 
+**Demo video narration:** [`video-script-tts.txt`](./video-script-tts.txt) (Eleven Labs, ~3 min)
+
 ## Screen capture checklist (video / Devpost)
 
-Open the Railway deep link above. Capture **one full-page screenshot** or a **~30s scroll recording** that shows all of the following:
+Open the Railway deep link above. Capture **two screenshots** or a **~30s scroll recording**:
 
 ### 1. Incident header (above the fold)
 
-- Title: **Bedrock embeddings + selector demo**
-- Incident ID: `45148da3-04ec-4793-8645-14cbc16d902f`
+- Title: **API latency spike in us-east-1, primary health checks failing**
+- Incident ID: `ff8d161e-4a7c-4894-9f8d-5759bd32504e`
 - **Selector: Amazon Bedrock** (not mock, not fallback)
-- **Selected: Escalate to human** with confidence **0.85**
-- Bedrock reason text (human review + backup runbook context)
+- **Selected: Escalate to human** with confidence **0.75**
+- Bedrock reason: conflicting signals — USE runbook vs INSPECT precedent and blocked failed actions
 
 ### 2. Status cards (four tiles)
 
@@ -53,13 +56,13 @@ Show all five rows with color-coded verdicts:
 
 | Memory label | Verdict |
 |--------------|---------|
-| `runbook_backup_verify` | **USE** |
-| `noise_recruiting_pipeline` | **AVOID** |
-| `noise_marketing_newsletter` | **AVOID** |
-| `noise_sales_deck` | **AVOID** |
-| `historical_incident_db_outage` | **INSPECT** |
+| `failed_action_dns_cutover` | **AVOID** |
+| `historical_incident` | **INSPECT** |
+| `failed_action_pod_drain` | **AVOID** |
+| `current_runbook` | **USE** |
+| `failed_action_similar_restart` | **AVOID** |
 
-Judges should see unsafe/noise memories blocked despite semantic similarity scores.
+Judges should see: similarity ranks failed actions highly, but MemoryGate blocks them. Only the approved runbook is USE; historical precedent is INSPECT.
 
 ### 4. Execution timeline (scroll down)
 
@@ -74,15 +77,15 @@ Story order must be visible:
 7. `action.committed` — Worker B single commit
 8. `action.commit_rejected` — Worker A stale attempt (`already_committed`)
 
-### 5. Action ledger + audit summary (bottom)
+### 5. Action ledger + audit proof strip (bottom)
 
 - One ledger row: `ESCALATE_TO_HUMAN` → **committed**
-- Audit summary: retrieved **5**, blocked **3**, audit events **17**
+- Audit proof strip: retrieved **5**, blocked **3**, committed **1**, stale rejections **1**, invariants **PASS**
 
 **Saved screenshots:**
 
 - [`m8_dashboard_bedrock_proof.png`](./m8_dashboard_bedrock_proof.png) — header + status cards + MemoryGate (sections 1–3)
-- [`m8_dashboard_bedrock_timeline.png`](./m8_dashboard_bedrock_timeline.png) — execution timeline, action ledger, audit summary (sections 4–5)
+- [`m8_dashboard_bedrock_timeline.png`](./m8_dashboard_bedrock_timeline.png) — execution timeline, action ledger, audit proof strip (sections 4–5)
 
 ## Core evidence files
 
@@ -90,11 +93,12 @@ Story order must be visible:
 |------|----------------|
 | [`m8_db_status.txt`](./m8_db_status.txt) | Active DB target (`cloud`), CockroachDB version, `embedding_storage_mode=vector`, vector index, table counts — **no credentials** |
 | [`m8_ccloud_check.txt`](./m8_ccloud_check.txt) | **ccloud CLI** — version, auth session, `relayguard` cluster on AWS |
-| [`m8_latest_audit.txt`](./m8_latest_audit.txt) | Text audit for latest incident (`45148da3-…`, Bedrock selector) |
+| [`m8_latest_audit.txt`](./m8_latest_audit.txt) | Text audit for latest incident (`ff8d161e-…`, Bedrock guarded escalation) |
 | [`m8_latest_audit.json`](./m8_latest_audit.json) | Machine-readable audit — dashboard/API parity |
 | [`m8_incident_list.json`](./m8_incident_list.json) | Recent incidents with invariant status |
 | [`bedrock_selector_run.txt`](./bedrock_selector_run.txt) | **Amazon Bedrock** guarded selector CLI output |
 | [`m8_dashboard_instructions.txt`](./m8_dashboard_instructions.txt) | Railway + local dashboard URLs |
+| [`video-script-tts.txt`](./video-script-tts.txt) | Eleven Labs narration for ~3 min demo video |
 | [`m6_lambda_demo_output.txt`](./m6_lambda_demo_output.txt) | **AWS Lambda** crash handoff — Worker A reserves, Worker B commits, **PASS** |
 | [`m6_lambda_db_status.txt`](./m6_lambda_db_status.txt) | Lambda `db_status` against Cloud — VECTOR mode |
 | [`m6_audit_report.txt`](./m6_audit_report.txt) | Lambda incident audit (`ROUTE_TO_STANDBY`, mock selector) |
@@ -103,8 +107,8 @@ Story order must be visible:
 
 | File | What it proves |
 |------|----------------|
-| [`m8_dashboard_bedrock_proof.png`](./m8_dashboard_bedrock_proof.png) | **Railway dashboard (top)** — Bedrock selector, MemoryGate, 1 commit / 1 stale rejection (`45148da3-…`) |
-| [`m8_dashboard_bedrock_timeline.png`](./m8_dashboard_bedrock_timeline.png) | **Railway dashboard (scroll)** — story-ordered timeline, action ledger, audit summary |
+| [`m8_dashboard_bedrock_proof.png`](./m8_dashboard_bedrock_proof.png) | **Railway dashboard (top)** — Bedrock selector, MemoryGate, 1 commit / 1 stale rejection (`ff8d161e-…`) |
+| [`m8_dashboard_bedrock_timeline.png`](./m8_dashboard_bedrock_timeline.png) | **Railway dashboard (scroll)** — story-ordered timeline, action ledger, audit proof strip |
 | [`m6_cloudwatch_logs.png`](./m6_cloudwatch_logs.png) | **CloudWatch** — `[worker-a]` / `[worker-b]` Lambda logs |
 | [`m6_cloudwatch_logs.txt`](./m6_cloudwatch_logs.txt) | Text excerpt of CloudWatch log lines |
 | [`mcp_worker_rejection_question.png`](./mcp_worker_rejection_question.png) | **Managed MCP** — Cursor asks why Worker A was rejected |
@@ -134,9 +138,8 @@ No write credentials were exposed to MCP.
 ## How to refresh
 
 ```powershell
-# 1. Run Bedrock demo (writes to CockroachDB Cloud)
-$env:ACTION_SELECTOR = "bedrock"
-.\scripts\run-demo.ps1
+# 1. Run Bedrock demo (sets ops title + ACTION_SELECTOR=bedrock)
+.\scripts\run-bedrock-demo.ps1
 
 # 2. Snapshot CLI evidence (db_status, latest audit, incident list)
 .\scripts\capture-evidence.ps1
@@ -145,15 +148,15 @@ $env:ACTION_SELECTOR = "bedrock"
 #    docs/evidence/m8_dashboard_bedrock_proof.png
 #    docs/evidence/m8_dashboard_bedrock_timeline.png
 
-# Optional: Lambda path (separate incident)
+# Optional: Lambda path (separate incident, ROUTE_TO_STANDBY mock selector)
 .\infra\aws\scripts\invoke-demo.ps1
 ```
 
 ## What judges should see
 
 1. **CockroachDB Cloud** — VECTOR memory, durable lease + audit tables (63-entry demo corpus)
-2. **Amazon Bedrock** — guarded action selector on live Haiku 4.5 inference profile
+2. **Amazon Bedrock** — guarded action selector; escalates when USE and INSPECT signals conflict
 3. **One committed remediation action** — 1 commit, 1 stale rejection; duplicate commits prevented
-4. **MemoryGate** — noise/historical memories blocked or flagged despite similarity retrieval
-5. **AWS** — Lambda workers, Secrets Manager, CloudWatch (separate Lambda incident)
+4. **MemoryGate** — high-similarity failed actions blocked; only approved runbook is USE
+5. **AWS** — Lambda workers, Secrets Manager, CloudWatch (separate Lambda incident with `ROUTE_TO_STANDBY`)
 6. **Read-only proof** — Railway dashboard + Managed MCP screenshots; no write credentials in the browser or MCP session
